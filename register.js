@@ -6,6 +6,9 @@
   var successBox = document.getElementById('sitter-success');
   var successText = document.getElementById('sitter-success-text');
   var contractLink = document.getElementById('sitter-contract-link');
+  var accessBox = document.getElementById('sitter-access-box');
+  var accessCodeEl = document.getElementById('sitter-access-code');
+  var accessHint = document.getElementById('sitter-access-hint');
   var errorBox = document.getElementById('sitter-error');
   var errorText = document.getElementById('sitter-error-text');
 
@@ -97,10 +100,16 @@
           ? 'Download your contract (also emailed to you)'
           : 'Download your contract';
       }
+      if (accessCodeEl && result && result.access_code) {
+        accessCodeEl.textContent = result.access_code;
+        if (accessBox) accessBox.hidden = false;
+        if (accessHint) accessHint.hidden = false;
+      }
       successBox.hidden = false;
       form.reset();
       syncIdTypeFields();
       successBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     } catch (err) {
       errorText.textContent = err.message || 'Something went wrong. Please try again.';
       errorBox.hidden = false;

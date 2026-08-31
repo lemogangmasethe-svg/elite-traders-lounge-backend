@@ -45,5 +45,34 @@ window.ETL_API = (function () {
     return data;
   }
 
-  return { post: post, get: get, base: API };
+  async function getAuth(path, headers) {
+    var res = await fetch(API + path, { headers: headers || {} });
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* no body */ }
+    if (!res.ok) {
+      var msg = (data && data.detail) || ('Request failed (' + res.status + ')');
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+    return data;
+  }
+
+  async function postAuth(path, body, headers) {
+    var res = await fetch(API + path, {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, headers || {}),
+      body: JSON.stringify(body),
+    });
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* no body */ }
+    if (!res.ok) {
+      var msg = (data && (data.detail || data.message)) || ('Request failed (' + res.status + ')');
+      if (Array.isArray(data && data.detail)) {
+        msg = data.detail.map(function (d) { return d.msg || JSON.stringify(d); }).join(' ');
+      }
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+    return data;
+  }
+
+  return { post: post, get: get, getAuth: getAuth, postAuth: postAuth, base: API };
 })();

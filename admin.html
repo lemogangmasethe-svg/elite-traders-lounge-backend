@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard — Elite Traders Lounge</title>
+<meta name="description" content="Private staff dashboard for verifying babysitters and families and assigning bookings." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="./base.css" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<header class="header">
+  <div class="container header__inner">
+    <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+      <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+      </svg>
+      <span class="brand__name">
+        <span>Elite Traders Lounge</span>
+        <span>Babysitting Services</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="./index.html#how-it-works">How it works</a></li>
+        <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+        <li><a href="./index.html#pricing">Rates</a></li>
+        <li><a href="./policies.html">Policies</a></li>
+        <li><a href="./terms.html">Terms &amp; Conditions</a></li>
+        <li><a href="./index.html#faq">FAQ</a></li>
+        <li><a href="./index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="header__actions">
+      <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="./register-sitter.html" class="btn btn--secondary btn--sm">Become a sitter</a>
+      <a href="./book.html" class="btn btn--primary btn--sm">Book a sitter</a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" data-menu-toggle>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="container">
+    <div class="mobile-menu" data-mobile-menu>
+      <a href="./index.html#how-it-works">How it works</a>
+      <a href="./index.html#trust">Trust &amp; safety</a>
+      <a href="./index.html#pricing">Rates</a>
+      <a href="./policies.html">Policies</a>
+      <a href="./terms.html">Terms &amp; Conditions</a>
+      <a href="./index.html#faq">FAQ</a>
+      <a href="./index.html#contact">Contact</a>
+      <a href="./register-sitter.html">Become a sitter</a>
+      <a href="./book.html">Book a sitter</a>
+      <a href="./checkin.html">Confirm arrival / departure</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <span class="eyebrow">Private staff area</span>
+      <h1>Admin dashboard</h1>
+      <p>Verify babysitters and families, assign sitters to bookings, and check for schedule clashes. This page is not linked from the public site &mdash; keep the link private.</p>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container container--narrow">
+
+      <div class="dash-login" id="admin-login">
+        <h2>Admin sign in</h2>
+        <p>Enter the admin password to continue.</p>
+        <div class="field">
+          <label for="admin-password">Admin password</label>
+          <input type="password" id="admin-password" autocomplete="current-password" />
+        </div>
+        <button type="button" class="btn btn--primary" id="admin-login-btn">Sign in</button>
+        <div class="alert alert--error" id="admin-login-error" hidden style="margin-top: var(--space-4);">
+          <span id="admin-login-error-text">Incorrect password.</span>
+        </div>
+      </div>
+
+      <div class="dash-panel" id="admin-panel" hidden>
+        <div class="dash-toolbar">
+          <span class="dash-toolbar__who">Signed in as admin</span>
+          <button type="button" class="btn btn--ghost btn--sm" id="admin-logout-btn">Sign out</button>
+        </div>
+
+        <div class="dash-tabs" role="tablist">
+          <button type="button" class="dash-tab is-active" data-tab="sitters" role="tab">Babysitters</button>
+          <button type="button" class="dash-tab" data-tab="bookings" role="tab">Bookings &amp; scheduling</button>
+        </div>
+
+        <div class="dash-tabpanel" data-tabpanel="sitters">
+          <div class="alert alert--info" style="margin-bottom: var(--space-5);">
+            <span>Tick each item once you've personally checked it (over email/WhatsApp/in person). There is no automatic document upload yet &mdash; this is a manual checklist, not automated verification.</span>
+          </div>
+          <div class="dash-card-list" id="sitters-list">
+            <div class="dash-empty">Loading babysitters&hellip;</div>
+          </div>
+        </div>
+
+        <div class="dash-tabpanel" data-tabpanel="bookings" hidden>
+          <div class="dash-card-list" id="bookings-list">
+            <div class="dash-empty">Loading bookings&hellip;</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+          <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" style="width:32px;height:32px;">
+            <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+          </svg>
+          <span class="brand__name"><span>Elite Traders Lounge</span></span>
+        </a>
+        <p>A verified booking platform connecting South African families with independent babysitters. Payments are processed and settled securely through Paystack Split Payments. Registration K2017318876.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="./index.html#how-it-works">How it works</a></li>
+          <li><a href="./index.html#pricing">Rate bands</a></li>
+          <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+          <li><a href="./register-sitter.html">Become a sitter</a></li>
+          <li><a href="./book.html">Book a sitter</a></li>
+          <li><a href="./checkin.html">Confirm arrival / departure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <ul>
+          <li><a href="./index.html#faq">FAQ</a></li>
+          <li><a href="mailto:lemo.masethe@elitetraders.co.za">Email support</a></li>
+          <li><a href="tel:+27814270419">Call support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="./policies.html#minimum-wage">Minimum wage &amp; rate bands</a></li>
+          <li><a href="./policies.html#refund-policy">Refund &amp; cancellation policy</a></li>
+          <li><a href="./policies.html#popia">POPIA &amp; data protection</a></li>
+          <li><a href="./terms.html">Terms &amp; Conditions</a></li>
+          <li><a href="./policies.html">All policies</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 Elite Traders Lounge (Pty) Ltd · Reg. K2017318876</span>
+      <span>Kwa-Guqa, Mpumalanga, South Africa</span>
+    </div>
+  </div>
+</footer>
+
+<script src="./app.js" defer></script>
+<script src="./api.js" defer></script>
+<script src="./admin.js" defer></script>
+</body>
+</html>

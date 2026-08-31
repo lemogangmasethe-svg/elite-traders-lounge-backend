@@ -14,12 +14,12 @@ import smtplib
 import sqlite3
 import string
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -125,6 +125,22 @@ MIGRATION_COLUMNS = [
     ("bookings", "paystack_email", "TEXT NOT NULL DEFAULT ''"),
     ("bookings", "smile_id_consent", "INTEGER NOT NULL DEFAULT 0"),
     ("bookings", "contract_sent", "INTEGER NOT NULL DEFAULT 0"),
+    # Admin dashboard: verification checklists, sitter login codes, and
+    # booking -> sitter assignment / accept-decline workflow.
+    ("babysitters", "access_code", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "id_doc_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "proof_of_address_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "reference_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "smile_id_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "unavailable_dates", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "admin_notes", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "assigned_sitter_id", "INTEGER"),
+    ("bookings", "sitter_response", "TEXT NOT NULL DEFAULT 'unassigned'"),
+    ("bookings", "family_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "family_id_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "family_proof_of_address_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "admin_notes", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 
@@ -209,6 +225,74 @@ if not USE_POSTGRES:
     db.executescript(SCHEMA_SQL)
     db.commit()
 run_migrations(db)
+
+
+def gen_access_code() -> str:
+    for _ in range(20):
+        code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        if not db.execute("SELECT 1 FROM babysitters WHERE access_code = ?", (code,)).fetchone():
+            return code
+    raise RuntimeError("could not generate a unique access code")
+
+
+def backfill_access_codes():
+    """Sitters registered before the sitter-login feature existed have no
+    access_code yet. Assign one on startup so every sitter can log in."""
+    rows = [dict(r) for r in db.execute(
+        "SELECT id FROM babysitters WHERE access_code = '' OR access_code IS NULL"
+    ).fetchall()]
+    for r in rows:
+        db.execute("UPDATE babysitters SET access_code = ? WHERE id = ?", (gen_access_code(), r["id"]))
+    if rows:
+        db.commit()
+
+
+backfill_access_codes()
+
+# ---------------------------------------------------------------------------
+# Admin dashboard auth. A single shared password (set via the ADMIN_PASSWORD
+# environment variable in production) protects /api/admin/* endpoints. In
+# the sandbox/local dev environment (no DATABASE_URL configured) an
+# unconfigured password falls back to a known default so the preview works
+# out of the box; production always requires ADMIN_PASSWORD to be set.
+# ---------------------------------------------------------------------------
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
+if not ADMIN_PASSWORD and not USE_POSTGRES:
+    ADMIN_PASSWORD = "EliteAdmin2026!"
+
+
+def require_admin(x_admin_password: str = Header(default="")):
+    if not ADMIN_PASSWORD or x_admin_password != ADMIN_PASSWORD:
+        raise HTTPException(401, "Incorrect admin password.")
+    return True
+
+
+def authenticate_sitter(email: str, access_code: str) -> dict:
+    row = db.execute(
+        "SELECT * FROM babysitters WHERE lower(email) = lower(?) AND access_code = ?",
+        (email.strip(), access_code.strip().upper()),
+    ).fetchone()
+    if not row:
+        raise HTTPException(401, "That email and access code don't match any registered babysitter.")
+    return dict(row)
+
+
+def sitter_public(row: dict) -> dict:
+    return {
+        "id": row["id"],
+        "full_name": row["full_name"],
+        "email": row["email"],
+        "status": row["status"],
+        "verified": bool(row["verified"]),
+        "experience_level": row["experience_level"],
+        "unavailable_dates": sorted(d for d in (row.get("unavailable_dates") or "").split(",") if d),
+    }
+
+
+def booking_window(date_str: str, time_str: str, duration_hours: float):
+    start = datetime.fromisoformat(f"{date_str}T{time_str}")
+    end = start + timedelta(hours=duration_hours)
+    return start, end
 
 
 @asynccontextmanager
@@ -557,6 +641,7 @@ def health():
 @app.post("/api/register-sitter", status_code=201)
 def register_sitter(payload: SitterRegistration):
     emailed = send_contract_email(payload.email, payload.full_name, "sitter")
+    access_code = gen_access_code()
     cur = db.execute(
         """INSERT INTO babysitters
         (full_name, id_type, id_number, passport_number, nationality, work_permit_number,
@@ -565,8 +650,8 @@ def register_sitter(payload: SitterRegistration):
          references_text, availability, reference_name, reference_relationship,
          reference_phone, reference_email, reference_affidavit_consent, paystack_email,
          smile_id_consent, bank_name, account_holder, account_number, agreed_terms,
-         contract_sent, status, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         contract_sent, access_code, status, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             payload.full_name, payload.id_type, payload.id_number, payload.passport_number,
             payload.nationality, payload.work_permit_number, payload.work_permit_expiry,
@@ -578,12 +663,13 @@ def register_sitter(payload: SitterRegistration):
             payload.reference_phone, payload.reference_email, int(payload.reference_affidavit_consent),
             payload.paystack_email, int(payload.smile_id_consent), payload.bank_name,
             payload.account_holder, payload.account_number, int(payload.agreed_terms),
-            int(emailed), "pending_verification", now_iso(),
+            int(emailed), access_code, "pending_verification", now_iso(),
         ),
     )
     db.commit()
     return {
         "id": cur.lastrowid,
+        "access_code": access_code,
         "status": "pending_verification",
         "contract_url": contract_url_for("sitter"),
         "contract_emailed": emailed,
@@ -709,6 +795,230 @@ def checkin(payload: CheckinRequest):
         (payload.booking_ref,),
     ).fetchall()]
     return {"timestamp": ts, "checkins": checkins, "summary": summarize_hours(checkins)}
+
+
+# ---------------------------------------------------------------------------
+# Admin dashboard API — password-protected via the X-Admin-Password header.
+# ---------------------------------------------------------------------------
+class AdminLoginRequest(BaseModel):
+    password: str
+
+
+@app.post("/api/admin/login")
+def admin_login(payload: AdminLoginRequest):
+    if not ADMIN_PASSWORD or payload.password != ADMIN_PASSWORD:
+        raise HTTPException(401, "Incorrect admin password.")
+    return {"ok": True}
+
+
+@app.get("/api/admin/sitters")
+def admin_list_sitters(admin_ok: bool = Depends(require_admin)):
+    rows = [dict(r) for r in db.execute("SELECT * FROM babysitters ORDER BY created_at DESC").fetchall()]
+    return {"sitters": rows}
+
+
+class AdminSitterVerifyRequest(BaseModel):
+    id_doc_verified: bool = False
+    proof_of_address_verified: bool = False
+    reference_verified: bool = False
+    smile_id_verified: bool = False
+    admin_notes: Optional[str] = ""
+
+
+@app.post("/api/admin/sitters/{sitter_id}/verify")
+def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin_ok: bool = Depends(require_admin)):
+    row = db.execute("SELECT id FROM babysitters WHERE id = ?", (sitter_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Sitter not found.")
+    verified = (
+        payload.id_doc_verified and payload.proof_of_address_verified
+        and payload.reference_verified and payload.smile_id_verified
+    )
+    status = "verified" if verified else "pending_verification"
+    db.execute(
+        """UPDATE babysitters SET id_doc_verified=?, proof_of_address_verified=?, reference_verified=?,
+        smile_id_verified=?, verified=?, status=?, admin_notes=? WHERE id=?""",
+        (
+            int(payload.id_doc_verified), int(payload.proof_of_address_verified),
+            int(payload.reference_verified), int(payload.smile_id_verified),
+            int(verified), status, payload.admin_notes or "", sitter_id,
+        ),
+    )
+    db.commit()
+    return {"id": sitter_id, "verified": verified, "status": status}
+
+
+@app.get("/api/admin/bookings")
+def admin_list_bookings(admin_ok: bool = Depends(require_admin)):
+    rows = [dict(r) for r in db.execute("SELECT * FROM bookings ORDER BY created_at DESC").fetchall()]
+    sitters = {s["id"]: s for s in (dict(r) for r in db.execute(
+        "SELECT id, full_name, email, phone, verified FROM babysitters"
+    ).fetchall())}
+    for r in rows:
+        sid = r.get("assigned_sitter_id")
+        r["assigned_sitter"] = sitters.get(sid) if sid else None
+    return {"bookings": rows}
+
+
+class AdminFamilyVerifyRequest(BaseModel):
+    family_id_verified: bool = False
+    family_proof_of_address_verified: bool = False
+    admin_notes: Optional[str] = ""
+
+
+@app.post("/api/admin/bookings/{booking_id}/verify")
+def admin_verify_family(booking_id: int, payload: AdminFamilyVerifyRequest, admin_ok: bool = Depends(require_admin)):
+    row = db.execute("SELECT id FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Booking not found.")
+    verified = payload.family_id_verified and payload.family_proof_of_address_verified
+    db.execute(
+        """UPDATE bookings SET family_id_verified=?, family_proof_of_address_verified=?,
+        family_verified=?, admin_notes=? WHERE id=?""",
+        (
+            int(payload.family_id_verified), int(payload.family_proof_of_address_verified),
+            int(verified), payload.admin_notes or "", booking_id,
+        ),
+    )
+    db.commit()
+    return {"id": booking_id, "family_verified": verified}
+
+
+class AdminAssignRequest(BaseModel):
+    sitter_id: int
+
+
+@app.post("/api/admin/bookings/{booking_id}/assign")
+def admin_assign_sitter(booking_id: int, payload: AdminAssignRequest, admin_ok: bool = Depends(require_admin)):
+    booking = db.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+    if not booking:
+        raise HTTPException(404, "Booking not found.")
+    booking = dict(booking)
+    sitter = db.execute("SELECT * FROM babysitters WHERE id = ?", (payload.sitter_id,)).fetchone()
+    if not sitter:
+        raise HTTPException(404, "Sitter not found.")
+    new_start, new_end = booking_window(booking["booking_date"], booking["start_time"], booking["duration_hours"])
+    others = [dict(r) for r in db.execute(
+        "SELECT * FROM bookings WHERE assigned_sitter_id = ? AND id != ? AND sitter_response != 'declined'",
+        (payload.sitter_id, booking_id),
+    ).fetchall()]
+    clashes = []
+    for o in others:
+        o_start, o_end = booking_window(o["booking_date"], o["start_time"], o["duration_hours"])
+        if new_start < o_end and new_end > o_start:
+            clashes.append(o["booking_ref"])
+    db.execute(
+        "UPDATE bookings SET assigned_sitter_id = ?, sitter_response = 'pending', status = 'assigned' WHERE id = ?",
+        (payload.sitter_id, booking_id),
+    )
+    db.commit()
+    return {"id": booking_id, "assigned_sitter_id": payload.sitter_id, "clashes": clashes}
+
+
+@app.post("/api/admin/bookings/{booking_id}/unassign")
+def admin_unassign_sitter(booking_id: int, admin_ok: bool = Depends(require_admin)):
+    row = db.execute("SELECT id FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Booking not found.")
+    db.execute(
+        "UPDATE bookings SET assigned_sitter_id = NULL, sitter_response = 'unassigned', status = 'pending_match' WHERE id = ?",
+        (booking_id,),
+    )
+    db.commit()
+    return {"id": booking_id}
+
+
+# ---------------------------------------------------------------------------
+# Sitter dashboard API — each sitter authenticates with their email + the
+# access_code shown at registration (also included in their emailed
+# contract confirmation).
+# ---------------------------------------------------------------------------
+class SitterAuthRequest(BaseModel):
+    email: str
+    access_code: str
+
+
+@app.post("/api/sitter/login")
+def sitter_login(payload: SitterAuthRequest):
+    sitter = authenticate_sitter(payload.email, payload.access_code)
+    return sitter_public(sitter)
+
+
+@app.post("/api/sitter/bookings")
+def sitter_bookings(payload: SitterAuthRequest):
+    sitter = authenticate_sitter(payload.email, payload.access_code)
+    rows = [dict(r) for r in db.execute(
+        "SELECT * FROM bookings WHERE assigned_sitter_id = ? ORDER BY booking_date, start_time",
+        (sitter["id"],),
+    ).fetchall()]
+    bookings = [{
+        "id": r["id"], "booking_ref": r["booking_ref"], "parent_name": r["parent_name"],
+        "phone": r["phone"], "address": r["address"], "children_count": r["children_count"],
+        "booking_date": r["booking_date"], "start_time": r["start_time"], "rate_type": r["rate_type"],
+        "level": r["level"], "hourly_rate": r["hourly_rate"], "duration_hours": r["duration_hours"],
+        "special_instructions": r["special_instructions"], "status": r["status"],
+        "sitter_response": r["sitter_response"],
+    } for r in rows]
+    return {"sitter": sitter_public(sitter), "bookings": bookings}
+
+
+class SitterRespondRequest(BaseModel):
+    email: str
+    access_code: str
+    response: str
+
+    @field_validator("response")
+    @classmethod
+    def check_response(cls, v):
+        if v not in {"accepted", "declined"}:
+            raise ValueError("response must be 'accepted' or 'declined'")
+        return v
+
+
+@app.post("/api/sitter/bookings/{booking_id}/respond")
+def sitter_respond(booking_id: int, payload: SitterRespondRequest):
+    sitter = authenticate_sitter(payload.email, payload.access_code)
+    row = db.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+    booking = dict(row) if row else None
+    if not booking or booking.get("assigned_sitter_id") != sitter["id"]:
+        raise HTTPException(404, "This booking is not assigned to you.")
+    if payload.response == "accepted":
+        db.execute("UPDATE bookings SET sitter_response='accepted', status='confirmed' WHERE id=?", (booking_id,))
+    else:
+        db.execute(
+            "UPDATE bookings SET sitter_response='unassigned', status='pending_match', assigned_sitter_id=NULL WHERE id=?",
+            (booking_id,),
+        )
+    db.commit()
+    return {"id": booking_id, "response": payload.response}
+
+
+class SitterAvailabilityRequest(BaseModel):
+    email: str
+    access_code: str
+    date: str
+    action: str
+
+    @field_validator("action")
+    @classmethod
+    def check_action(cls, v):
+        if v not in {"add", "remove"}:
+            raise ValueError("action must be 'add' or 'remove'")
+        return v
+
+
+@app.post("/api/sitter/unavailability")
+def sitter_unavailability(payload: SitterAvailabilityRequest):
+    sitter = authenticate_sitter(payload.email, payload.access_code)
+    dates = set(d for d in (sitter.get("unavailable_dates") or "").split(",") if d)
+    if payload.action == "add":
+        dates.add(payload.date)
+    else:
+        dates.discard(payload.date)
+    new_val = ",".join(sorted(dates))
+    db.execute("UPDATE babysitters SET unavailable_dates = ? WHERE id = ?", (new_val, sitter["id"]))
+    db.commit()
+    return {"unavailable_dates": sorted(dates)}
 
 
 if __name__ == "__main__":

@@ -355,6 +355,10 @@ REGISTER_BODY = '''
               <span class="badge-verified badge-verified--pending" style="margin-left: var(--space-3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Verification pending</span>
               <a href="#" id="sitter-contract-link" style="margin-left: var(--space-3); white-space: nowrap;" target="_blank" rel="noopener" hidden>Download contract</a>
             </div>
+            <div class="booking-ref-box" id="sitter-access-box" hidden>
+              <div class="booking-ref-box__item"><span>Your dashboard access code</span><strong id="sitter-access-code">&ndash;</strong></div>
+            </div>
+            <p class="form-section__hint" id="sitter-access-hint" hidden style="margin-top: var(--space-3);">Save this code &mdash; with your email, it logs you into your <a href="./sitter-dashboard.html">babysitter dashboard</a> to accept or decline bookings and set your availability. It's also included in your emailed contract.</p>
             <div class="alert alert--error" id="sitter-error" hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
               <span id="sitter-error-text">Something went wrong.</span>
@@ -1001,6 +1005,119 @@ TERMS_BODY = '''
   </section>
 '''
 
+ADMIN_BODY = '''
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <span class="eyebrow">Private staff area</span>
+      <h1>Admin dashboard</h1>
+      <p>Verify babysitters and families, assign sitters to bookings, and check for schedule clashes. This page is not linked from the public site &mdash; keep the link private.</p>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container container--narrow">
+
+      <div class="dash-login" id="admin-login">
+        <h2>Admin sign in</h2>
+        <p>Enter the admin password to continue.</p>
+        <div class="field">
+          <label for="admin-password">Admin password</label>
+          <input type="password" id="admin-password" autocomplete="current-password" />
+        </div>
+        <button type="button" class="btn btn--primary" id="admin-login-btn">Sign in</button>
+        <div class="alert alert--error" id="admin-login-error" hidden style="margin-top: var(--space-4);">
+          <span id="admin-login-error-text">Incorrect password.</span>
+        </div>
+      </div>
+
+      <div class="dash-panel" id="admin-panel" hidden>
+        <div class="dash-toolbar">
+          <span class="dash-toolbar__who">Signed in as admin</span>
+          <button type="button" class="btn btn--ghost btn--sm" id="admin-logout-btn">Sign out</button>
+        </div>
+
+        <div class="dash-tabs" role="tablist">
+          <button type="button" class="dash-tab is-active" data-tab="sitters" role="tab">Babysitters</button>
+          <button type="button" class="dash-tab" data-tab="bookings" role="tab">Bookings &amp; scheduling</button>
+        </div>
+
+        <div class="dash-tabpanel" data-tabpanel="sitters">
+          <div class="alert alert--info" style="margin-bottom: var(--space-5);">
+            <span>Tick each item once you've personally checked it (over email/WhatsApp/in person). There is no automatic document upload yet &mdash; this is a manual checklist, not automated verification.</span>
+          </div>
+          <div class="dash-card-list" id="sitters-list">
+            <div class="dash-empty">Loading babysitters&hellip;</div>
+          </div>
+        </div>
+
+        <div class="dash-tabpanel" data-tabpanel="bookings" hidden>
+          <div class="dash-card-list" id="bookings-list">
+            <div class="dash-empty">Loading bookings&hellip;</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+'''
+
+SITTER_BODY = '''
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <span class="eyebrow">Babysitter dashboard</span>
+      <h1>Your bookings &amp; availability</h1>
+      <p>Log in with the email you registered with and the access code you were given when you applied. Use this page to accept or decline bookings we've assigned to you and to mark dates you're unavailable.</p>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container container--narrow">
+
+      <div class="dash-login" id="sitter-login">
+        <h2>Babysitter sign in</h2>
+        <p>Don't have your access code? It was shown once when you registered, and your admin contact can look it up for you.</p>
+        <div class="field">
+          <label for="sitter-login-email">Email address</label>
+          <input type="email" id="sitter-login-email" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="sitter-login-code">Access code</label>
+          <input type="text" id="sitter-login-code" autocomplete="off" maxlength="8" style="text-transform:uppercase;" />
+        </div>
+        <button type="button" class="btn btn--primary" id="sitter-login-btn">Sign in</button>
+        <div class="alert alert--error" id="sitter-login-error" hidden style="margin-top: var(--space-4);">
+          <span id="sitter-login-error-text">That email and access code don't match.</span>
+        </div>
+      </div>
+
+      <div class="dash-panel" id="sitter-panel" hidden>
+        <div class="dash-toolbar">
+          <span class="dash-toolbar__who" id="sitter-who">Signed in</span>
+          <button type="button" class="btn btn--ghost btn--sm" id="sitter-logout-btn">Sign out</button>
+        </div>
+
+        <div class="mini-cal" id="sitter-calendar">
+          <div class="mini-cal__head">
+            <h3 id="mini-cal-title">This month</h3>
+          </div>
+          <div class="mini-cal__grid" id="mini-cal-grid"></div>
+          <div class="mini-cal__legend">
+            <span><span class="mini-cal__swatch" style="background:var(--color-secondary-highlight);"></span>Booked</span>
+            <span><span class="mini-cal__swatch" style="background:var(--color-warning-highlight);"></span>Marked unavailable (click to clear)</span>
+            <span><span class="mini-cal__swatch" style="background:var(--color-surface-2);"></span>Available (click to mark unavailable)</span>
+          </div>
+        </div>
+
+        <h2 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Assigned bookings</h2>
+        <div class="dash-card-list" id="sitter-bookings-list">
+          <div class="dash-empty">Loading your bookings&hellip;</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+'''
+
 
 (ROOT / "register-sitter.html").write_text(
     page(
@@ -1047,6 +1164,26 @@ TERMS_BODY = '''
         "Terms and conditions covering identity verification, proof of address, reference affidavits, Paystack payments, and the right to refuse or cancel service on Elite Traders Lounge.",
         "terms",
         TERMS_BODY,
+    )
+)
+
+(ROOT / "admin.html").write_text(
+    page(
+        "Admin Dashboard — Elite Traders Lounge",
+        "Private staff dashboard for verifying babysitters and families and assigning bookings.",
+        "",
+        ADMIN_BODY,
+        extra_js="admin.js",
+    )
+)
+
+(ROOT / "sitter-dashboard.html").write_text(
+    page(
+        "Babysitter Dashboard — Elite Traders Lounge",
+        "Babysitter dashboard to accept or decline assigned bookings and manage availability.",
+        "",
+        SITTER_BODY,
+        extra_js="sitter-dashboard.js",
     )
 )
 

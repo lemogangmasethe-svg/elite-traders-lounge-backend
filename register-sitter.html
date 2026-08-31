@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Register as a Babysitter — Elite Traders Lounge</title>
+<meta name="description" content="Sign up as a verified babysitter with Elite Traders Lounge. Select your experience level, get placed in the right Appendix C rate band, and get paid at or above the National Minimum Wage." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="./base.css" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<header class="header">
+  <div class="container header__inner">
+    <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+      <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+      </svg>
+      <span class="brand__name">
+        <span>Elite Traders Lounge</span>
+        <span>Babysitting Services</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="./index.html#how-it-works">How it works</a></li>
+        <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+        <li><a href="./index.html#pricing">Rates</a></li>
+        <li><a href="./policies.html">Policies</a></li>
+        <li><a href="./index.html#faq">FAQ</a></li>
+        <li><a href="./index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="header__actions">
+      <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="./register-sitter.html" class="btn btn--secondary btn--sm">Become a sitter</a>
+      <a href="./book.html" class="btn btn--primary btn--sm">Book a sitter</a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" data-menu-toggle>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="container">
+    <div class="mobile-menu" data-mobile-menu>
+      <a href="./index.html#how-it-works">How it works</a>
+      <a href="./index.html#trust">Trust &amp; safety</a>
+      <a href="./index.html#pricing">Rates</a>
+      <a href="./policies.html">Policies</a>
+      <a href="./index.html#faq">FAQ</a>
+      <a href="./index.html#contact">Contact</a>
+      <a href="./register-sitter.html">Become a sitter</a>
+      <a href="./book.html">Book a sitter</a>
+      <a href="./checkin.html">Confirm arrival / departure</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <div class="breadcrumb"><a href="./index.html">Home</a> <span>/</span> <span>Register as a babysitter</span></div>
+      <span class="eyebrow">Babysitter sign-up</span>
+      <h1>Join Elite Traders Lounge as a verified babysitter.</h1>
+      <p>Tell us about your experience so we can place you in the right rate band. Every applicant completes SmileID identity verification before receiving bookings, and every booking pays at or above the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; never negotiated down.</p>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container container--narrow">
+      <div class="form-shell">
+        <form id="sitter-form" novalidate>
+
+          <div class="form-section">
+            <div class="form-section__title">Your details</div>
+            <div class="form-section__hint">This information is used for identity verification and to contact you about bookings.</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="full_name">Full name</label>
+                <input type="text" id="full_name" name="full_name" autocomplete="name" required minlength="2" maxlength="120" />
+              </div>
+              <div class="field">
+                <label for="id_number">South African ID number</label>
+                <input type="text" id="id_number" name="id_number" inputmode="numeric" required minlength="5" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="phone">Cellphone number</label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" required minlength="7" maxlength="20" placeholder="e.g. 081 234 5678" />
+              </div>
+              <div class="field">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" autocomplete="email" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="address">Home address</label>
+              <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Experience &amp; rate band</div>
+            <div class="form-section__hint">Choose the level that matches your experience &mdash; this determines your Appendix C rate band. Our team confirms your final level during verification.</div>
+            <div class="field">
+              <label>Experience level</label>
+              <div class="radio-cards">
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="1" required />
+                  <strong>Level 1 &mdash; Entry</strong>
+                  <span>0&ndash;1 year &middot; R35&ndash;R45/hr day</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="2" />
+                  <strong>Level 2 &mdash; Standard</strong>
+                  <span>1&ndash;3 years, references &middot; R45&ndash;R65/hr day</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="3" />
+                  <strong>Level 3 &mdash; Advanced</strong>
+                  <span>3+ yrs, First Aid/CPR &middot; R65&ndash;R85/hr day, R70&ndash;R80/hr overnight</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="4" />
+                  <strong>Level 4 &mdash; Specialist</strong>
+                  <span>Overnight / special needs &middot; R90&ndash;R100/hr overnight</span>
+                </label>
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="years_experience">Years of babysitting / childcare experience</label>
+                <input type="text" id="years_experience" name="years_experience" required placeholder="e.g. 2 years" />
+              </div>
+              <div class="field">
+                <label for="certifications">Certifications <span class="field__hint">(optional)</span></label>
+                <input type="text" id="certifications" name="certifications" placeholder="e.g. First Aid, CPR, ECD qualification" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="availability">Availability</label>
+              <input type="text" id="availability" name="availability" required minlength="2" maxlength="300" placeholder="e.g. Weekday evenings, weekends, overnight from Fridays" />
+            </div>
+            <div class="field">
+              <label for="references_text">References</label>
+              <textarea id="references_text" name="references_text" required minlength="5" maxlength="1000" placeholder="Name, relationship, and contact number for at least one reference"></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Payout details</div>
+            <div class="form-section__hint">Net earnings settle to this account by EFT within 3&ndash;5 business days after a family confirms the booking, with zero withdrawal fees.</div>
+            <div class="field-grid field-grid--3">
+              <div class="field">
+                <label for="bank_name">Bank</label>
+                <input type="text" id="bank_name" name="bank_name" required minlength="2" maxlength="100" />
+              </div>
+              <div class="field">
+                <label for="account_holder">Account holder name</label>
+                <input type="text" id="account_holder" name="account_holder" required minlength="2" maxlength="120" />
+              </div>
+              <div class="field">
+                <label for="account_number">Account number</label>
+                <input type="text" id="account_number" name="account_number" inputmode="numeric" required minlength="4" maxlength="40" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="checkbox-field">
+              <input type="checkbox" id="agreed_terms" name="agreed_terms" required />
+              <label for="agreed_terms">I confirm the details above are accurate and I agree to the Elite Traders Lounge Babysitter Contract, including Appendix C rate bands, the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>, and the <a href="./policies.html#popia">POPIA data protection terms</a>.</label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn--primary" id="sitter-submit">Submit application</button>
+              <span class="form-section__hint" style="margin:0;">Already applied? <a href="mailto:lemo.masethe@elitetraders.co.za">Email support</a> for a status update.</span>
+            </div>
+            <div class="alert alert--success" id="sitter-success" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
+              <span>Application received. Our team will contact you to complete SmileID verification before you can accept bookings.</span>
+            </div>
+            <div class="alert alert--error" id="sitter-error" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <span id="sitter-error-text">Something went wrong.</span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+          <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" style="width:32px;height:32px;">
+            <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+          </svg>
+          <span class="brand__name"><span>Elite Traders Lounge</span></span>
+        </a>
+        <p>A verified, wallet-secured booking platform connecting South African families with independent babysitters. Registration K2017318876.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="./index.html#how-it-works">How it works</a></li>
+          <li><a href="./index.html#pricing">Rate bands</a></li>
+          <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+          <li><a href="./register-sitter.html">Become a sitter</a></li>
+          <li><a href="./book.html">Book a sitter</a></li>
+          <li><a href="./checkin.html">Confirm arrival / departure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <ul>
+          <li><a href="./index.html#faq">FAQ</a></li>
+          <li><a href="mailto:lemo.masethe@elitetraders.co.za">Email support</a></li>
+          <li><a href="tel:+27814270419">Call support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="./policies.html#minimum-wage">Minimum wage &amp; rate bands</a></li>
+          <li><a href="./policies.html#refund-policy">Refund &amp; cancellation policy</a></li>
+          <li><a href="./policies.html#popia">POPIA &amp; data protection</a></li>
+          <li><a href="./policies.html">All policies</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 Elite Traders Lounge (Pty) Ltd · Reg. K2017318876</span>
+      <span>Kwa-Guqa, Mpumalanga, South Africa</span>
+    </div>
+  </div>
+</footer>
+
+<script src="./app.js" defer></script>
+<script src="./api.js" defer></script>
+<script src="./register.js" defer></script>
+</body>
+</html>

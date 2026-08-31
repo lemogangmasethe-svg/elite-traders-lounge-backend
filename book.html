@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Book a Sitter — Elite Traders Lounge</title>
+<meta name="description" content="Register as a parent or guardian and book a verified babysitter. Live quote checked against Appendix C rate bands and the National Minimum Wage." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="./base.css" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<header class="header">
+  <div class="container header__inner">
+    <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+      <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+      </svg>
+      <span class="brand__name">
+        <span>Elite Traders Lounge</span>
+        <span>Babysitting Services</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="./index.html#how-it-works">How it works</a></li>
+        <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+        <li><a href="./index.html#pricing">Rates</a></li>
+        <li><a href="./policies.html">Policies</a></li>
+        <li><a href="./index.html#faq">FAQ</a></li>
+        <li><a href="./index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="header__actions">
+      <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="./register-sitter.html" class="btn btn--secondary btn--sm">Become a sitter</a>
+      <a href="./book.html" class="btn btn--primary btn--sm">Book a sitter</a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" data-menu-toggle>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="container">
+    <div class="mobile-menu" data-mobile-menu>
+      <a href="./index.html#how-it-works">How it works</a>
+      <a href="./index.html#trust">Trust &amp; safety</a>
+      <a href="./index.html#pricing">Rates</a>
+      <a href="./policies.html">Policies</a>
+      <a href="./index.html#faq">FAQ</a>
+      <a href="./index.html#contact">Contact</a>
+      <a href="./register-sitter.html">Become a sitter</a>
+      <a href="./book.html">Book a sitter</a>
+      <a href="./checkin.html">Confirm arrival / departure</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <div class="breadcrumb"><a href="./index.html">Home</a> <span>/</span> <span>Book a sitter</span></div>
+      <span class="eyebrow">Parent / guardian &middot; book a sitter</span>
+      <h1>Register as a parent or guardian and book a sitter.</h1>
+      <p>Choose the level and rate you've agreed with your babysitter. Your quote is checked live against Appendix C's rate bands and the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; any rate below the compliant minimum is automatically corrected. Day bookings need a minimum of 4 hours; overnight bookings need a minimum of 10 hours.</p>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container container--narrow">
+      <div class="form-shell">
+        <form id="booking-form" novalidate>
+
+          <div class="form-section">
+            <div class="form-section__title">Parent / guardian details</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="parent_name">Full name</label>
+                <input type="text" id="parent_name" name="parent_name" autocomplete="name" required minlength="2" maxlength="120" />
+              </div>
+              <div class="field">
+                <label for="id_number">South African ID number</label>
+                <input type="text" id="id_number" name="id_number" inputmode="numeric" required minlength="5" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="phone">Cellphone number</label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" required minlength="7" maxlength="20" placeholder="e.g. 081 234 5678" />
+              </div>
+              <div class="field">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" autocomplete="email" required />
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="address">Home address where care will take place</label>
+                <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
+              </div>
+              <div class="field">
+                <label for="children_count">Number and ages of children</label>
+                <input type="text" id="children_count" name="children_count" required minlength="1" maxlength="20" placeholder="e.g. 2 children, ages 3 and 6" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Booking details</div>
+            <div class="form-section__hint">Select day or overnight, then the babysitter's level, and confirm the hourly rate you've agreed.</div>
+
+            <div class="field">
+              <label>Booking type</label>
+              <div class="action-toggle">
+                <label><input type="radio" name="rate_type" value="day" checked /> Day booking <span class="field__hint">(min. 4 hours)</span></label>
+                <label><input type="radio" name="rate_type" value="overnight" /> Overnight <span class="field__hint">(min. 10 hours)</span></label>
+              </div>
+            </div>
+
+            <div class="field-grid field-grid--3">
+              <div class="field">
+                <label for="level">Babysitter level</label>
+                <select id="level" name="level" required>
+                  <option value="1">Level 1 &mdash; Entry</option>
+                  <option value="2">Level 2 &mdash; Standard</option>
+                  <option value="3">Level 3 &mdash; Advanced</option>
+                  <option value="4">Level 4 &mdash; Specialist (overnight only)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="hourly_rate">Agreed hourly rate (R)</label>
+                <input type="number" id="hourly_rate" name="hourly_rate" required min="1" step="0.01" placeholder="e.g. 45" />
+                <span class="field__hint" id="band-hint">Level 1 day band: R35&ndash;R45/hour</span>
+              </div>
+              <div class="field">
+                <label for="duration_hours">Duration (hours)</label>
+                <input type="number" id="duration_hours" name="duration_hours" required min="1" step="0.5" placeholder="e.g. 4" />
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div class="field">
+                <label for="booking_date">Booking date</label>
+                <input type="date" id="booking_date" name="booking_date" required />
+              </div>
+              <div class="field">
+                <label for="start_time">Start time</label>
+                <input type="time" id="start_time" name="start_time" required />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="special_instructions">Care instructions <span class="field__hint">(optional)</span></label>
+              <textarea id="special_instructions" name="special_instructions" maxlength="1000" placeholder="Feeding, naps, medication, emergency contacts, house rules..."></textarea>
+            </div>
+
+            <div class="quote-box" id="quote-box" hidden>
+              <div class="quote-box__row"><span>Applied hourly rate</span><strong id="q-rate">&ndash;</strong></div>
+              <div class="quote-box__row"><span>Duration</span><strong id="q-duration">&ndash;</strong></div>
+              <div class="quote-box__row"><span>Commission (<span id="q-comm-pct">&ndash;</span>)</span><strong id="q-comm">&ndash;</strong></div>
+              <div class="quote-box__row total"><span>Total booking fee</span><strong id="q-fee">&ndash;</strong></div>
+              <div class="quote-box__row"><span>Net to babysitter</span><strong id="q-net">&ndash;</strong></div>
+              <p class="quote-box__note" id="q-note" hidden></p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="checkbox-field">
+              <input type="checkbox" id="agreed_terms" name="agreed_terms" required />
+              <label for="agreed_terms">I agree to the Elite Traders Lounge Babysitter Contract, the Appendix C rate bands shown above, and the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>.</label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn--primary" id="booking-submit">Submit booking request</button>
+            </div>
+            <div class="alert alert--error" id="booking-error" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <span id="booking-error-text">Something went wrong.</span>
+            </div>
+          </div>
+        </form>
+
+        <div id="booking-result" hidden>
+          <div class="alert alert--success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
+            <span>Booking request received. Save your reference and PIN below &mdash; you and your babysitter both need them to confirm arrival and departure.</span>
+          </div>
+          <div class="booking-ref-box">
+            <div class="booking-ref-box__item"><span>Booking reference</span><strong id="result-ref">&ndash;</strong></div>
+            <div class="booking-ref-box__item"><span>PIN</span><strong id="result-pin">&ndash;</strong></div>
+          </div>
+          <p class="form-section__hint" style="margin-top: var(--space-6);">Share the reference and PIN with your babysitter. When they arrive, both of you confirm on the <a href="./checkin.html">check-in page</a> &mdash; that's what starts the clock on worked hours.</p>
+          <a href="./checkin.html" class="btn btn--secondary" style="margin-top: var(--space-4);">Go to check-in tool</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+          <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" style="width:32px;height:32px;">
+            <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+          </svg>
+          <span class="brand__name"><span>Elite Traders Lounge</span></span>
+        </a>
+        <p>A verified, wallet-secured booking platform connecting South African families with independent babysitters. Registration K2017318876.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="./index.html#how-it-works">How it works</a></li>
+          <li><a href="./index.html#pricing">Rate bands</a></li>
+          <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+          <li><a href="./register-sitter.html">Become a sitter</a></li>
+          <li><a href="./book.html">Book a sitter</a></li>
+          <li><a href="./checkin.html">Confirm arrival / departure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <ul>
+          <li><a href="./index.html#faq">FAQ</a></li>
+          <li><a href="mailto:lemo.masethe@elitetraders.co.za">Email support</a></li>
+          <li><a href="tel:+27814270419">Call support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="./policies.html#minimum-wage">Minimum wage &amp; rate bands</a></li>
+          <li><a href="./policies.html#refund-policy">Refund &amp; cancellation policy</a></li>
+          <li><a href="./policies.html#popia">POPIA &amp; data protection</a></li>
+          <li><a href="./policies.html">All policies</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 Elite Traders Lounge (Pty) Ltd · Reg. K2017318876</span>
+      <span>Kwa-Guqa, Mpumalanga, South Africa</span>
+    </div>
+  </div>
+</footer>
+
+<script src="./app.js" defer></script>
+<script src="./api.js" defer></script>
+<script src="./book.js" defer></script>
+</body>
+</html>

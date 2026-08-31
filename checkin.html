@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Confirm Arrival & Departure — Elite Traders Lounge</title>
+<meta name="description" content="Dual-party check-in and check-out confirmation for babysitters and parents/guardians, so worked hours are protected for everyone." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="./base.css" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<header class="header">
+  <div class="container header__inner">
+    <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+      <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+      </svg>
+      <span class="brand__name">
+        <span>Elite Traders Lounge</span>
+        <span>Babysitting Services</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <ul class="nav__links">
+        <li><a href="./index.html#how-it-works">How it works</a></li>
+        <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+        <li><a href="./index.html#pricing">Rates</a></li>
+        <li><a href="./policies.html">Policies</a></li>
+        <li><a href="./index.html#faq">FAQ</a></li>
+        <li><a href="./index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+
+    <div class="header__actions">
+      <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="./register-sitter.html" class="btn btn--secondary btn--sm">Become a sitter</a>
+      <a href="./book.html" class="btn btn--primary btn--sm">Book a sitter</a>
+      <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" data-menu-toggle>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="container">
+    <div class="mobile-menu" data-mobile-menu>
+      <a href="./index.html#how-it-works">How it works</a>
+      <a href="./index.html#trust">Trust &amp; safety</a>
+      <a href="./index.html#pricing">Rates</a>
+      <a href="./policies.html">Policies</a>
+      <a href="./index.html#faq">FAQ</a>
+      <a href="./index.html#contact">Contact</a>
+      <a href="./register-sitter.html">Become a sitter</a>
+      <a href="./book.html">Book a sitter</a>
+      <a href="./checkin.html">Confirm arrival / departure</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <div class="breadcrumb"><a href="./index.html">Home</a> <span>/</span> <span>Confirm arrival &amp; departure</span></div>
+      <span class="eyebrow">Dual-party confirmation</span>
+      <h1>Confirm arrival and departure to protect worked hours.</h1>
+      <p>Both the babysitter and the parent/guardian must independently confirm using the booking reference and PIN. A session's start time is the confirmed arrival of both parties; the end time is the confirmed departure of both parties. This protects the babysitter's pay, the family's booking, and gives Elite Traders Lounge a clear, timestamped record for any dispute.</p>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container">
+      <div class="checkin-grid">
+
+        <div class="form-shell">
+          <div class="form-section" style="margin-top:0; padding-top:0; border-top:none;">
+            <div class="form-section__title">Confirm your arrival or departure</div>
+            <div class="form-section__hint">Enter the booking reference and PIN shared with you, choose your role and whether you're arriving or leaving.</div>
+
+            <form id="checkin-form" novalidate>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="booking_ref">Booking reference</label>
+                  <input type="text" id="booking_ref" name="booking_ref" required placeholder="ETL-XXXXXX" autocapitalize="characters" />
+                </div>
+                <div class="field">
+                  <label for="pin">4-digit PIN</label>
+                  <input type="text" id="pin" name="pin" required inputmode="numeric" maxlength="4" placeholder="1234" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label>I am the...</label>
+                <div class="role-toggle" role="group" aria-label="Select your role">
+                  <button type="button" data-role="sitter" aria-pressed="true">Babysitter</button>
+                  <button type="button" data-role="parent" aria-pressed="false">Parent / guardian</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>I am confirming my...</label>
+                <div class="action-toggle">
+                  <label><input type="radio" name="action" value="arrival" checked /> Arrival</label>
+                  <label><input type="radio" name="action" value="departure" /> Departure</label>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="note">Note <span class="field__hint">(optional)</span></label>
+                <input type="text" id="note" name="note" maxlength="200" placeholder="e.g. Arrived at the front gate" />
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn--primary" id="checkin-submit">Confirm now</button>
+                <button type="button" class="btn btn--ghost" id="checkin-lookup">Look up booking status</button>
+              </div>
+              <div class="alert alert--success" id="checkin-success" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
+                <span id="checkin-success-text">Confirmed.</span>
+              </div>
+              <div class="alert alert--error" id="checkin-error" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <span id="checkin-error-text">Something went wrong.</span>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="status-card" id="status-card">
+          <h3>Booking status</h3>
+          <p class="form-section__hint" id="status-empty">Confirm an arrival or departure, or look up a booking, to see live status here.</p>
+          <div id="status-content" hidden>
+            <div class="status-row">
+              <span>Babysitter arrival</span>
+              <span><span class="status-pill" id="pill-sitter-arrival">Pending</span> <span class="status-timestamp" id="ts-sitter-arrival"></span></span>
+            </div>
+            <div class="status-row">
+              <span>Parent/guardian arrival</span>
+              <span><span class="status-pill" id="pill-parent-arrival">Pending</span> <span class="status-timestamp" id="ts-parent-arrival"></span></span>
+            </div>
+            <div class="status-row">
+              <span>Babysitter departure</span>
+              <span><span class="status-pill" id="pill-sitter-departure">Pending</span> <span class="status-timestamp" id="ts-sitter-departure"></span></span>
+            </div>
+            <div class="status-row">
+              <span>Parent/guardian departure</span>
+              <span><span class="status-pill" id="pill-parent-departure">Pending</span> <span class="status-timestamp" id="ts-parent-departure"></span></span>
+            </div>
+            <div class="worked-hours-banner" id="worked-hours-banner" hidden>
+              <span>Confirmed worked hours</span>
+              <strong id="worked-hours-value">&ndash;</strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="./index.html" class="brand" aria-label="Elite Traders Lounge home">
+          <svg class="brand__mark" viewBox="0 0 48 48" fill="none" aria-hidden="true" style="width:32px;height:32px;">
+            <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+          </svg>
+          <span class="brand__name"><span>Elite Traders Lounge</span></span>
+        </a>
+        <p>A verified, wallet-secured booking platform connecting South African families with independent babysitters. Registration K2017318876.</p>
+      </div>
+      <div>
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="./index.html#how-it-works">How it works</a></li>
+          <li><a href="./index.html#pricing">Rate bands</a></li>
+          <li><a href="./index.html#trust">Trust &amp; safety</a></li>
+          <li><a href="./register-sitter.html">Become a sitter</a></li>
+          <li><a href="./book.html">Book a sitter</a></li>
+          <li><a href="./checkin.html">Confirm arrival / departure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <ul>
+          <li><a href="./index.html#faq">FAQ</a></li>
+          <li><a href="mailto:lemo.masethe@elitetraders.co.za">Email support</a></li>
+          <li><a href="tel:+27814270419">Call support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="./policies.html#minimum-wage">Minimum wage &amp; rate bands</a></li>
+          <li><a href="./policies.html#refund-policy">Refund &amp; cancellation policy</a></li>
+          <li><a href="./policies.html#popia">POPIA &amp; data protection</a></li>
+          <li><a href="./policies.html">All policies</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 Elite Traders Lounge (Pty) Ltd · Reg. K2017318876</span>
+      <span>Kwa-Guqa, Mpumalanga, South Africa</span>
+    </div>
+  </div>
+</footer>
+
+<script src="./app.js" defer></script>
+<script src="./api.js" defer></script>
+<script src="./checkin.js" defer></script>
+</body>
+</html>

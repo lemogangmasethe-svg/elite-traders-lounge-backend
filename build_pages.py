@@ -30,6 +30,7 @@ def header(active=""):
         <li><a href="./index.html#trust">Trust &amp; safety</a></li>
         <li><a href="./index.html#pricing">Rates</a></li>
         <li><a href="./policies.html"{cls('policies')}>Policies</a></li>
+        <li><a href="./terms.html"{cls('terms')}>Terms &amp; Conditions</a></li>
         <li><a href="./index.html#faq">FAQ</a></li>
         <li><a href="./index.html#contact">Contact</a></li>
       </ul>
@@ -52,6 +53,7 @@ def header(active=""):
       <a href="./index.html#trust">Trust &amp; safety</a>
       <a href="./index.html#pricing">Rates</a>
       <a href="./policies.html">Policies</a>
+      <a href="./terms.html">Terms &amp; Conditions</a>
       <a href="./index.html#faq">FAQ</a>
       <a href="./index.html#contact">Contact</a>
       <a href="./register-sitter.html">Become a sitter</a>
@@ -73,7 +75,7 @@ FOOTER = '''<footer class="footer">
           </svg>
           <span class="brand__name"><span>Elite Traders Lounge</span></span>
         </a>
-        <p>A verified, wallet-secured booking platform connecting South African families with independent babysitters. Registration K2017318876.</p>
+        <p>A verified booking platform connecting South African families with independent babysitters. Payments are processed and settled securely through Paystack Split Payments. Registration K2017318876.</p>
       </div>
       <div>
         <h4>Platform</h4>
@@ -100,6 +102,7 @@ FOOTER = '''<footer class="footer">
           <li><a href="./policies.html#minimum-wage">Minimum wage &amp; rate bands</a></li>
           <li><a href="./policies.html#refund-policy">Refund &amp; cancellation policy</a></li>
           <li><a href="./policies.html#popia">POPIA &amp; data protection</a></li>
+          <li><a href="./terms.html">Terms &amp; Conditions</a></li>
           <li><a href="./policies.html">All policies</a></li>
         </ul>
       </div>
@@ -153,7 +156,7 @@ REGISTER_BODY = '''
       <div class="breadcrumb"><a href="./index.html">Home</a> <span>/</span> <span>Register as a babysitter</span></div>
       <span class="eyebrow">Babysitter sign-up</span>
       <h1>Join Elite Traders Lounge as a verified babysitter.</h1>
-      <p>Tell us about your experience so we can place you in the right rate band. Every applicant completes SmileID identity verification before receiving bookings, and every booking pays at or above the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; never negotiated down.</p>
+      <p>Tell us about your experience so we can place you in the right rate band. Every applicant completes Smile ID identity verification before receiving bookings, and every booking pays at or above the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; never negotiated down.</p>
     </div>
   </section>
 
@@ -164,16 +167,56 @@ REGISTER_BODY = '''
 
           <div class="form-section">
             <div class="form-section__title">Your details</div>
-            <div class="form-section__hint">This information is used for identity verification and to contact you about bookings.</div>
-            <div class="field-grid">
-              <div class="field">
-                <label for="full_name">Full name</label>
-                <input type="text" id="full_name" name="full_name" autocomplete="name" required minlength="2" maxlength="120" />
+            <div class="form-section__hint">This information is used for Smile ID identity verification and to contact you about bookings.</div>
+            <div class="field">
+              <label for="full_name">Full name</label>
+              <input type="text" id="full_name" name="full_name" autocomplete="name" required minlength="2" maxlength="120" />
+            </div>
+
+            <div class="field">
+              <label>Identity document</label>
+              <div class="radio-cards" data-id-type-group>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="sa_id" checked data-id-type-toggle />
+                  <strong>South African ID</strong>
+                  <span>SA citizens &amp; permanent residents</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="passport" data-id-type-toggle />
+                  <strong>Passport + work permit</strong>
+                  <span>Foreign nationals registering as freelancers</span>
+                </label>
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="sa_id">
               <div class="field">
                 <label for="id_number">South African ID number</label>
-                <input type="text" id="id_number" name="id_number" inputmode="numeric" required minlength="5" maxlength="20" />
+                <input type="text" id="id_number" name="id_number" inputmode="numeric" minlength="5" maxlength="20" />
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="passport" hidden>
+              <div class="field">
+                <label for="passport_number">Passport number</label>
+                <input type="text" id="passport_number" name="passport_number" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="nationality">Nationality</label>
+                <input type="text" id="nationality" name="nationality" maxlength="60" />
+              </div>
+              <div class="field">
+                <label for="work_permit_number">Work permit number</label>
+                <input type="text" id="work_permit_number" name="work_permit_number" maxlength="40" />
+                <span class="field__hint">Required by South African immigration law &mdash; freelance babysitters who are not SA citizens or permanent residents must hold a valid work permit.</span>
+              </div>
+              <div class="field">
+                <label for="work_permit_expiry">Work permit expiry date</label>
+                <input type="date" id="work_permit_expiry" name="work_permit_expiry" />
+              </div>
+            </div>
+
+            <div class="field-grid">
               <div class="field">
                 <label for="phone">Cellphone number</label>
                 <input type="tel" id="phone" name="phone" autocomplete="tel" required minlength="7" maxlength="20" placeholder="e.g. 081 234 5678" />
@@ -186,6 +229,34 @@ REGISTER_BODY = '''
             <div class="field">
               <label for="address">Home address</label>
               <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Proof of address</div>
+            <div class="form-section__hint">Have a document ready to send to our verification team &mdash; a utility bill, bank statement, lease agreement, or affidavit dated within the last 3 months, matching the home address above.</div>
+            <div class="field">
+              <label for="proof_of_address_type">Proof of address document type</label>
+              <select id="proof_of_address_type" name="proof_of_address_type" required>
+                <option value="" disabled selected>Select a document type</option>
+                <option value="utility_bill">Utility bill (municipal / electricity / water)</option>
+                <option value="bank_statement">Bank statement</option>
+                <option value="lease_agreement">Lease agreement</option>
+                <option value="affidavit">Affidavit confirming residential address</option>
+              </select>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="proof_of_address_confirmed" name="proof_of_address_confirmed" required />
+              <label for="proof_of_address_confirmed">I confirm this document is dated within the last 3 months, matches the home address above, and I will provide a copy to Elite Traders Lounge on request.</label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Verify yourself (Smile ID)</div>
+            <div class="form-section__hint">Elite Traders Lounge partners with Smile ID to confirm your identity against your ID/passport and run a facial-liveness check before you can accept bookings. Once verified, your profile displays a &ldquo;Verified identity&rdquo; badge that families can see.</div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
+              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) as part of registration.</label>
             </div>
           </div>
 
@@ -231,35 +302,48 @@ REGISTER_BODY = '''
               <label for="availability">Availability</label>
               <input type="text" id="availability" name="availability" required minlength="2" maxlength="300" placeholder="e.g. Weekday evenings, weekends, overnight from Fridays" />
             </div>
-            <div class="field">
-              <label for="references_text">References</label>
-              <textarea id="references_text" name="references_text" required minlength="5" maxlength="1000" placeholder="Name, relationship, and contact number for at least one reference"></textarea>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Reference &amp; affidavit</div>
+            <div class="form-section__hint">Provide one contactable reference. This person will be asked to complete and sign the standard Reference Affidavit (Appendix A of your contract) before a Commissioner of Oaths, confirming your character and childcare experience.</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="reference_name">Reference full name</label>
+                <input type="text" id="reference_name" name="reference_name" required minlength="2" maxlength="120" />
+              </div>
+              <div class="field">
+                <label for="reference_relationship">Relationship to you</label>
+                <input type="text" id="reference_relationship" name="reference_relationship" required minlength="2" maxlength="80" placeholder="e.g. Former employer, family friend" />
+              </div>
+              <div class="field">
+                <label for="reference_phone">Reference cellphone number</label>
+                <input type="tel" id="reference_phone" name="reference_phone" required minlength="7" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="reference_email">Reference email address</label>
+                <input type="email" id="reference_email" name="reference_email" required />
+              </div>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="reference_affidavit_consent" name="reference_affidavit_consent" required />
+              <label for="reference_affidavit_consent">I confirm this reference has agreed to be contacted by Elite Traders Lounge and to complete the Reference Affidavit template in Appendix A of the Babysitter Contract.</label>
             </div>
           </div>
 
           <div class="form-section">
-            <div class="form-section__title">Payout details</div>
-            <div class="form-section__hint">Net earnings settle to this account by EFT within 3&ndash;5 business days after a family confirms the booking, with zero withdrawal fees.</div>
-            <div class="field-grid field-grid--3">
-              <div class="field">
-                <label for="bank_name">Bank</label>
-                <input type="text" id="bank_name" name="bank_name" required minlength="2" maxlength="100" />
-              </div>
-              <div class="field">
-                <label for="account_holder">Account holder name</label>
-                <input type="text" id="account_holder" name="account_holder" required minlength="2" maxlength="120" />
-              </div>
-              <div class="field">
-                <label for="account_number">Account number</label>
-                <input type="text" id="account_number" name="account_number" inputmode="numeric" required minlength="4" maxlength="40" />
-              </div>
+            <div class="form-section__title">Paystack payout account</div>
+            <div class="form-section__hint">Elite Traders Lounge uses Paystack Split Payment: every booking pays into Paystack once, and Paystack pays your net share directly to your own Paystack account &mdash; Elite Traders Lounge never holds or is responsible for your funds. Enter the email address linked to your Paystack account; if you don't have one yet, create a free account at <a href="https://paystack.com" target="_blank" rel="noopener">paystack.com</a> before submitting.</div>
+            <div class="field">
+              <label for="paystack_email">Paystack account email</label>
+              <input type="email" id="paystack_email" name="paystack_email" required />
             </div>
           </div>
 
           <div class="form-section">
             <div class="checkbox-field">
               <input type="checkbox" id="agreed_terms" name="agreed_terms" required />
-              <label for="agreed_terms">I confirm the details above are accurate and I agree to the Elite Traders Lounge Babysitter Contract, including Appendix C rate bands, the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>, and the <a href="./policies.html#popia">POPIA data protection terms</a>.</label>
+              <label for="agreed_terms">I confirm the details above are accurate and I agree to the Elite Traders Lounge Babysitter Contract (emailed to me on submission), the <a href="./terms.html">Terms &amp; Conditions</a>, the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>, and the <a href="./policies.html#popia">POPIA data protection terms</a>. I understand Elite Traders Lounge reserves the right to refuse or cancel service to any user who provides false information or breaches its rules.</label>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn--primary" id="sitter-submit">Submit application</button>
@@ -267,7 +351,9 @@ REGISTER_BODY = '''
             </div>
             <div class="alert alert--success" id="sitter-success" hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
-              <span>Application received. Our team will contact you to complete SmileID verification before you can accept bookings.</span>
+              <span id="sitter-success-text">Application received. Our team will contact you to complete Smile ID verification before you can accept bookings.</span>
+              <span class="badge-verified badge-verified--pending" style="margin-left: var(--space-3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Verification pending</span>
+              <a href="#" id="sitter-contract-link" style="margin-left: var(--space-3); white-space: nowrap;" target="_blank" rel="noopener" hidden>Download contract</a>
             </div>
             <div class="alert alert--error" id="sitter-error" hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
@@ -298,15 +384,47 @@ BOOK_BODY = '''
 
           <div class="form-section">
             <div class="form-section__title">Parent / guardian details</div>
-            <div class="field-grid">
-              <div class="field">
-                <label for="parent_name">Full name</label>
-                <input type="text" id="parent_name" name="parent_name" autocomplete="name" required minlength="2" maxlength="120" />
+            <div class="form-section__hint">This information is used for Smile ID identity verification and to contact you about your booking.</div>
+            <div class="field">
+              <label for="parent_name">Full name</label>
+              <input type="text" id="parent_name" name="parent_name" autocomplete="name" required minlength="2" maxlength="120" />
+            </div>
+
+            <div class="field">
+              <label>Identity document</label>
+              <div class="radio-cards" data-id-type-group>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="sa_id" checked data-id-type-toggle />
+                  <strong>South African ID</strong>
+                  <span>SA citizens &amp; permanent residents</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="passport" data-id-type-toggle />
+                  <strong>Passport</strong>
+                  <span>Foreign nationals resident in South Africa</span>
+                </label>
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="sa_id">
               <div class="field">
                 <label for="id_number">South African ID number</label>
-                <input type="text" id="id_number" name="id_number" inputmode="numeric" required minlength="5" maxlength="20" />
+                <input type="text" id="id_number" name="id_number" inputmode="numeric" minlength="5" maxlength="20" />
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="passport" hidden>
+              <div class="field">
+                <label for="passport_number">Passport number</label>
+                <input type="text" id="passport_number" name="passport_number" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="nationality">Nationality</label>
+                <input type="text" id="nationality" name="nationality" maxlength="60" />
+              </div>
+            </div>
+
+            <div class="field-grid">
               <div class="field">
                 <label for="phone">Cellphone number</label>
                 <input type="tel" id="phone" name="phone" autocomplete="tel" required minlength="7" maxlength="20" placeholder="e.g. 081 234 5678" />
@@ -325,6 +443,39 @@ BOOK_BODY = '''
                 <label for="children_count">Number and ages of children</label>
                 <input type="text" id="children_count" name="children_count" required minlength="1" maxlength="20" placeholder="e.g. 2 children, ages 3 and 6" />
               </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Proof of address</div>
+            <div class="form-section__hint">Have a document ready to send to our verification team &mdash; a utility bill, bank statement, lease agreement, or affidavit dated within the last 3 months, matching the home address above.</div>
+            <div class="field">
+              <label for="proof_of_address_type">Proof of address document type</label>
+              <select id="proof_of_address_type" name="proof_of_address_type" required>
+                <option value="" disabled selected>Select a document type</option>
+                <option value="utility_bill">Utility bill (municipal / electricity / water)</option>
+                <option value="bank_statement">Bank statement</option>
+                <option value="lease_agreement">Lease agreement</option>
+                <option value="affidavit">Affidavit confirming residential address</option>
+              </select>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="proof_of_address_confirmed" name="proof_of_address_confirmed" required />
+              <label for="proof_of_address_confirmed">I confirm this document is dated within the last 3 months, matches the home address above, and I will provide a copy to Elite Traders Lounge on request.</label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Verify yourself (Smile ID) &amp; Paystack account</div>
+            <div class="form-section__hint">Elite Traders Lounge partners with Smile ID to confirm your identity before a babysitter is placed in your home. Payments run on Paystack Split Payment &mdash; Elite Traders Lounge never holds your funds in a wallet; Paystack pays the babysitter's share and Elite Traders Lounge's commission share directly, on the same transaction.</div>
+            <div class="field">
+              <label for="paystack_email">Paystack account email</label>
+              <input type="email" id="paystack_email" name="paystack_email" required />
+              <span class="field__hint">Don't have one yet? Create a free account at <a href="https://paystack.com" target="_blank" rel="noopener">paystack.com</a> before submitting.</span>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
+              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) as part of registration.</label>
             </div>
           </div>
 
@@ -390,7 +541,7 @@ BOOK_BODY = '''
           <div class="form-section">
             <div class="checkbox-field">
               <input type="checkbox" id="agreed_terms" name="agreed_terms" required />
-              <label for="agreed_terms">I agree to the Elite Traders Lounge Babysitter Contract, the Appendix C rate bands shown above, and the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>.</label>
+              <label for="agreed_terms">I agree to the Elite Traders Lounge Family Service Agreement (emailed to me on submission), the <a href="./terms.html">Terms &amp; Conditions</a>, the Appendix C rate bands shown above, and the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>. I understand Elite Traders Lounge reserves the right to refuse or cancel service to any user who provides false information or breaches its rules.</label>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn--primary" id="booking-submit">Submit booking request</button>
@@ -405,7 +556,8 @@ BOOK_BODY = '''
         <div id="booking-result" hidden>
           <div class="alert alert--success">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
-            <span>Booking request received. Save your reference and PIN below &mdash; you and your babysitter both need them to confirm arrival and departure.</span>
+            <span id="result-message">Booking request received. Save your reference and PIN below &mdash; you and your babysitter both need them to confirm arrival and departure.</span>
+            <span class="badge-verified badge-verified--pending" style="margin-left: var(--space-3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Verification pending</span>
           </div>
           <div class="booking-ref-box">
             <div class="booking-ref-box__item"><span>Booking reference</span><strong id="result-ref">&ndash;</strong></div>
@@ -413,6 +565,7 @@ BOOK_BODY = '''
           </div>
           <p class="form-section__hint" style="margin-top: var(--space-6);">Share the reference and PIN with your babysitter. When they arrive, both of you confirm on the <a href="./checkin.html">check-in page</a> &mdash; that's what starts the clock on worked hours.</p>
           <a href="./checkin.html" class="btn btn--secondary" style="margin-top: var(--space-4);">Go to check-in tool</a>
+          <a href="#" id="result-contract-link" class="btn btn--secondary" style="margin-top: var(--space-4); margin-left: var(--space-3);" target="_blank" rel="noopener" hidden>Download Family Service Agreement</a>
         </div>
       </div>
     </div>
@@ -587,7 +740,7 @@ POLICIES_BODY = '''
 
       <div class="policy-section" id="commission">
         <h2>5.3 Commission Structure</h2>
-        <p>Elite Traders Lounge's commission is deducted from the total booking fee before net payment reaches the babysitter&#39;s wallet. Worked examples:</p>
+        <p>Every booking is paid once, through Paystack Split Payment. Paystack automatically splits that single payment and pays the babysitter's net share directly into the babysitter's own Paystack account, while Elite Traders Lounge's commission share is paid directly into Elite Traders Lounge's Paystack account &mdash; on the same transaction, with no wallet held by Elite Traders Lounge at any point. Worked examples:</p>
         <div class="rate-table-wrap">
           <table class="rate-table">
             <thead><tr><th>Service component</th><th>Level</th><th>Babysitter fee</th><th>Elite Traders Lounge commission</th><th>Net to babysitter</th></tr></thead>
@@ -610,24 +763,24 @@ POLICIES_BODY = '''
           <table class="rate-table">
             <thead><tr><th>Cancellation timing</th><th>Babysitter compensation</th><th>Family refund</th></tr></thead>
             <tbody>
-              <tr><td>&ge;48 hours before booking</td><td>R0 (no charge)</td><td>100% refund to wallet</td></tr>
-              <tr><td>24&ndash;48 hours before booking</td><td>50% of the agreed net amount</td><td>50% refund to wallet</td></tr>
-              <tr><td>&lt;24 hours before booking</td><td>75% of the agreed net amount</td><td>25% refund to wallet</td></tr>
+              <tr><td>&ge;48 hours before booking</td><td>R0 (no charge)</td><td>100% refund via Paystack to the original payment method</td></tr>
+              <tr><td>24&ndash;48 hours before booking</td><td>50% of the agreed net amount</td><td>50% refund via Paystack to the original payment method</td></tr>
+              <tr><td>&lt;24 hours before booking</td><td>75% of the agreed net amount</td><td>25% refund via Paystack to the original payment method</td></tr>
               <tr><td>No-show (Family absent)</td><td>100% of the agreed net amount</td><td>R0 refund (full charge)</td></tr>
             </tbody>
           </table>
         </div>
-        <p><strong>Process:</strong> Family must cancel through the Elite Traders Lounge app or email <a href="mailto:lemo.masethe@elitetraders.co.za">lemo.masethe@elitetraders.co.za</a>. Include the booking reference number and reason for cancellation. Refund is processed back to the Family's original payment method within 3&ndash;5 business days.</p>
+        <p><strong>Process:</strong> Family must cancel through the Elite Traders Lounge app or email <a href="mailto:lemo.masethe@elitetraders.co.za">lemo.masethe@elitetraders.co.za</a>. Include the booking reference number and reason for cancellation. Refund is processed via Paystack back to the Family's original payment method within 3&ndash;5 business days.</p>
 
         <h3>6.2 Babysitter Cancellation (Before Service Rendered)</h3>
         <div class="rate-table-wrap">
           <table class="rate-table">
             <thead><tr><th>Cancellation timing</th><th>Babysitter compensation</th><th>Family refund</th></tr></thead>
             <tbody>
-              <tr><td>&ge;48 hours before booking</td><td>R0 (no charge)</td><td>100% refund to wallet</td></tr>
-              <tr><td>24&ndash;48 hours before booking</td><td>25% net amount (Babysitter forfeits 75%)</td><td>75% refund to wallet</td></tr>
-              <tr><td>&lt;24 hours before booking</td><td>50% net amount (Babysitter forfeits 50%)</td><td>50% refund to wallet</td></tr>
-              <tr><td>No-show (Babysitter absent)</td><td>R0 (forfeits 100%)</td><td>100% refund to wallet; profile suspended pending review</td></tr>
+              <tr><td>&ge;48 hours before booking</td><td>R0 (no charge)</td><td>100% refund via Paystack to the original payment method</td></tr>
+              <tr><td>24&ndash;48 hours before booking</td><td>25% net amount (Babysitter forfeits 75%)</td><td>75% refund via Paystack to the original payment method</td></tr>
+              <tr><td>&lt;24 hours before booking</td><td>50% net amount (Babysitter forfeits 50%)</td><td>50% refund via Paystack to the original payment method</td></tr>
+              <tr><td>No-show (Babysitter absent)</td><td>R0 (forfeits 100%)</td><td>100% refund via Paystack to the Family's original payment method; profile suspended pending review</td></tr>
             </tbody>
           </table>
         </div>
@@ -677,7 +830,7 @@ POLICIES_BODY = '''
         <h2>Data Protection (POPIA)</h2>
         <ul>
           <li>Elite Traders Lounge processes personal information (identity, contact, banking, and location details) strictly to verify identity, facilitate bookings, process payments, and maintain safety records, in line with the Protection of Personal Information Act (POPIA).</li>
-          <li>Identity verification data (e.g. SmileID checks) is stored securely and is not shared with third parties beyond what is required for verification and legal compliance.</li>
+          <li>Identity verification data (e.g. Smile ID checks) is stored securely and is not shared with third parties beyond what is required for verification and legal compliance.</li>
           <li>Check-in/check-out timestamps and booking records are retained to resolve disputes and support labour-law compliance, and are only accessible to the parties involved and Elite Traders Lounge administrators.</li>
           <li>Users may request access to, correction of, or deletion of their personal information (subject to legal retention requirements) by emailing <a href="mailto:lemo.masethe@elitetraders.co.za">lemo.masethe@elitetraders.co.za</a>.</li>
         </ul>
@@ -693,6 +846,157 @@ POLICIES_BODY = '''
       </div>
 
       <p style="margin-top: var(--space-10); color: var(--color-text-faint); font-size: var(--text-xs);">This page summarises key clauses of the Elite Traders Lounge Babysitter Contract for reference. In the event of any conflict, the signed contract between the parties and Elite Traders Lounge governs.</p>
+    </div>
+  </section>
+'''
+
+
+TERMS_BODY = '''
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <div class="breadcrumb"><a href="./index.html">Home</a> <span>/</span> <span>Terms &amp; Conditions</span></div>
+      <span class="eyebrow">Legal</span>
+      <h1>Terms &amp; Conditions</h1>
+      <p>These Terms &amp; Conditions govern use of the Elite Traders Lounge platform by babysitters ("Babysitters") and parents/guardians ("Families"). By registering, booking, or accepting a booking, you agree to these terms, the Elite Traders Lounge Babysitter Contract or Family Service Agreement issued to you on registration, and the <a href="./policies.html">Rates &amp; Policies</a> page. Where these terms and your signed contract conflict, the signed contract governs.</p>
+      <p class="form-section__hint">Last updated: 31 August 2026.</p>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container container--narrow">
+      <div class="policy-toc">
+        <a href="#acceptance">1. Acceptance &amp; digital signature</a>
+        <a href="#eligibility">2. Eligibility &amp; identity verification</a>
+        <a href="#proof-of-address">3. Proof of address</a>
+        <a href="#reference-affidavit">4. Reference &amp; affidavit</a>
+        <a href="#payments">5. Payments (Paystack)</a>
+        <a href="#contracts">6. Individual contracts &amp; delivery</a>
+        <a href="#conduct-terms">7. Platform role &amp; conduct</a>
+        <a href="#suspension">8. Right to refuse or cancel service</a>
+        <a href="#liability">9. Limitation of liability</a>
+        <a href="#changes">10. Changes to these terms</a>
+        <a href="#governing-law">11. Governing law</a>
+        <a href="#contact-terms">12. Contact</a>
+      </div>
+
+      <div class="policy-section" id="acceptance">
+        <h2>1. Acceptance &amp; Digital Signature</h2>
+        <ul>
+          <li>Creating a profile, submitting a registration form, or ticking the agreement checkbox on the Elite Traders Lounge website constitutes a binding digital signature and acceptance of these Terms &amp; Conditions and the accompanying contract emailed to you.</li>
+          <li>You must be at least 18 years old and legally capable of entering into a binding contract to register as a Babysitter or as a Family representative.</li>
+          <li>If you register on behalf of a household, you confirm you are authorised to bind that household to these terms.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section" id="eligibility">
+        <h2>2. Eligibility &amp; Identity Verification</h2>
+        <ul>
+          <li><strong>South African citizens and permanent residents</strong> register using a valid South African ID number.</li>
+          <li><strong>Foreign nationals</strong> may register as freelance Babysitters using a valid passport, provided they hold a valid work permit or other legal authorisation to perform paid work in South Africa under the Immigration Act 13 of 2002. Elite Traders Lounge does not place or pay any Babysitter who cannot demonstrate the legal right to work in South Africa, and reserves the right to request the physical work permit document at any time.</li>
+          <li>All Families and Babysitters must complete identity verification through <strong>Smile ID</strong> (document authentication and facial liveness check) before a Babysitter is placed in, or a Family may book care at, a household. Bookings and placements are provisional until Smile ID verification is complete.</li>
+          <li>Providing false, forged, or expired identity documents is grounds for immediate account suspension and may be reported to the relevant authorities.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section" id="proof-of-address">
+        <h2>3. Proof of Address</h2>
+        <ul>
+          <li>Both Babysitters and Families must provide proof of address &mdash; a utility bill, bank statement, lease agreement, or a sworn affidavit confirming residential address &mdash; dated within the last three (3) months.</li>
+          <li>Proof of address is used to confirm the Babysitter's home address for safety and background checks, and the Family's address as the verified location where care will be provided.</li>
+          <li>Elite Traders Lounge may request an updated proof of address at any time, including where an address on file appears out of date.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section" id="reference-affidavit">
+        <h2>4. Reference &amp; Affidavit</h2>
+        <ul>
+          <li>Every Babysitter must supply at least one contactable reference (name, relationship, phone number, and email address) at the time of registration.</li>
+          <li>The nominated reference will be asked to complete the standard Elite Traders Lounge Reference Affidavit (Appendix A of the Babysitter Contract), sworn before a Commissioner of Oaths, confirming their relationship to the Babysitter and their honest assessment of the Babysitter's character and childcare experience.</li>
+          <li>Elite Traders Lounge may contact the reference directly by phone or email to verify the information supplied and confirm the affidavit's authenticity.</li>
+          <li>A Babysitter profile is marked "Reference Verified" only once a completed, signed affidavit has been received and checked.</li>
+        </ul>
+        <div class="policy-callout"><strong>Appendix A &mdash; Standard Reference Affidavit (template):</strong>
+          <p style="margin-top: var(--space-3);">I, the undersigned, ____________________ (full name), holder of South African ID / Passport number ____________________, residing at ____________________, do hereby state under oath that:</p>
+          <ol>
+            <li>I have known ____________________ (Babysitter's full name) in the capacity of ____________________ (relationship, e.g. employer, colleague, family friend) for a period of ____________________.</li>
+            <li>To the best of my knowledge, the above-named person is of good character, trustworthy, and has not, to my knowledge, engaged in any conduct that would render them unsuitable to care for children.</li>
+            <li>I am aware that this statement may be relied upon by Elite Traders Lounge and by Families booking childcare services through Elite Traders Lounge, and I make this statement freely and voluntarily without undue influence.</li>
+            <li>I can be contacted at the phone number and email address I have supplied to confirm this statement if required.</li>
+          </ol>
+          <p>Signed at ____________________ on this ____ day of ____________________ 20____.</p>
+          <p>Signature of Deponent: ____________________&nbsp;&nbsp;&nbsp;&nbsp;Signature &amp; stamp of Commissioner of Oaths: ____________________</p>
+          <p style="margin-bottom:0;">This template is provided by Elite Traders Lounge to protect Babysitters, Families, and Elite Traders Lounge itself, and does not constitute legal advice. Parties may consult an attorney regarding its use.</p>
+        </div>
+      </div>
+
+      <div class="policy-section" id="payments">
+        <h2>5. Payments (Paystack)</h2>
+        <ul>
+          <li>All booking payments are processed through <strong>Paystack</strong> using Paystack's Split Payment functionality. A Family's payment for a booking is made once, and Paystack automatically splits and pays the Babysitter's net share directly to the Babysitter's own Paystack account and Elite Traders Lounge's commission share directly to Elite Traders Lounge's own Paystack account, on the same transaction.</li>
+          <li>Both Babysitters and Families must hold their own active Paystack account and supply the email address linked to that account at registration, so Elite Traders Lounge can confirm the account exists before enabling payouts or bookings.</li>
+          <li><strong>Elite Traders Lounge does not hold, custody, or accept responsibility for any wallet balance.</strong> Funds in transit are held and disbursed by Paystack as the payment processor, subject to Paystack's own terms of service; Elite Traders Lounge's role is limited to configuring the commission split and facilitating bookings.</li>
+          <li>Commission rates (10%&ndash;15% depending on level and booking type, per Appendix C) are unchanged and are deducted automatically as part of the Paystack split &mdash; no additional platform or service fee is charged on top of this commission.</li>
+          <li>Refunds for eligible cancellations (see <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>) are issued via Paystack back to the Family's original payment method.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section" id="contracts">
+        <h2>6. Individual Contracts &amp; Delivery</h2>
+        <ul>
+          <li>On successful registration, Elite Traders Lounge issues each Babysitter the current Babysitter Agreement and each Family the current Family Service Agreement by email to the address supplied, and makes a downloadable copy available from the confirmation screen.</li>
+          <li>These individual contracts set out the specific rate band, commission, minimum-wage compliance, and cancellation terms that apply to that party, and incorporate these Terms &amp; Conditions and the <a href="./policies.html">Rates &amp; Policies</a> page by reference.</li>
+          <li>It is each party's responsibility to read the emailed contract and raise any queries with Elite Traders Lounge before accepting or confirming a booking.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section" id="conduct-terms">
+        <h2>7. Platform Role &amp; Conduct</h2>
+        <ul>
+          <li>Elite Traders Lounge operates as a booking and verification platform connecting independent Babysitters with Families. Babysitters engage as independent contractors and are not employees of Elite Traders Lounge.</li>
+          <li>Both parties must use the <a href="./checkin.html">dual-party check-in tool</a> to confirm arrival and departure at every booking; timestamps recorded there are treated as the primary evidence of hours worked in any dispute.</li>
+          <li>The full Code of Conduct, Dispute Resolution process, and Termination &amp; Suspension terms are set out on the <a href="./policies.html#conduct">Policies page</a> and form part of these Terms.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section" id="suspension">
+        <h2>8. Right to Refuse or Cancel Service</h2>
+        <div class="policy-callout"><strong>Disclaimer:</strong> Elite Traders Lounge reserves the right, at its sole discretion, to refuse, suspend, or cancel service to, and to decline to onboard or continue working with, any Babysitter or Family who:
+          <ul style="margin-top: var(--space-3); margin-bottom: 0;">
+            <li>provides false, forged, incomplete, or misleading identity, address, reference, work-permit, or Paystack account information;</li>
+            <li>fails Smile ID verification or refuses to complete it;</li>
+            <li>breaches the Code of Conduct, engages in unsafe, abusive, discriminatory, or fraudulent behaviour, or endangers a child's safety;</li>
+            <li>has an unresolved dispute, repeated cancellations, or repeated no-shows; or</li>
+            <li>otherwise breaches these Terms, the Policies, or their individual contract.</li>
+          </ul>
+        </div>
+        <p>This right may be exercised without prior notice where safety is at risk, and with reasonable notice in all other cases. Exercising this right does not entitle the affected party to compensation beyond amounts already earned for services actually rendered.</p>
+      </div>
+
+      <div class="policy-section" id="liability">
+        <h2>9. Limitation of Liability</h2>
+        <ul>
+          <li>Elite Traders Lounge verifies identity, proof of address, and references on a best-efforts basis but does not guarantee the conduct, performance, or suitability of any Babysitter or Family, and is not liable for any loss, injury, or damage arising from a booking arranged through the platform.</li>
+          <li>Elite Traders Lounge is not a party to, and is not liable for, the processing, custody, or timing of payments handled by Paystack; any payment dispute involving Paystack is subject to Paystack's own terms and support channels.</li>
+          <li>Nothing in these Terms excludes any liability that cannot lawfully be excluded under South African law.</li>
+        </ul>
+      </div>
+
+      <div class="policy-section" id="changes">
+        <h2>10. Changes to These Terms</h2>
+        <p>Elite Traders Lounge may update these Terms &amp; Conditions, the Policies page, or Appendix C rate bands from time to time, including to reflect changes in the National Minimum Wage. Material changes will be posted on this page with an updated "last updated" date; continued use of the platform after changes take effect constitutes acceptance of the revised terms.</p>
+      </div>
+
+      <div class="policy-section" id="governing-law">
+        <h2>11. Governing Law</h2>
+        <p>These Terms are governed by the laws of the Republic of South Africa, including the Protection of Personal Information Act (POPIA), the Basic Conditions of Employment Act, and the Immigration Act 13 of 2002. The courts of South Africa have jurisdiction over any dispute not resolved through the process described on the <a href="./policies.html#disputes">Policies page</a>.</p>
+      </div>
+
+      <div class="policy-section" id="contact-terms">
+        <h2>12. Contact</h2>
+        <p>Questions about these Terms &amp; Conditions can be sent to <a href="mailto:lemo.masethe@elitetraders.co.za">lemo.masethe@elitetraders.co.za</a> or <a href="tel:+27814270419">+27 81 427 0419</a>. Elite Traders Lounge, registration number K2017318876, 4017 Alek Mampana Street, Extension 7, Kwa-Guqa, Mpumalanga, 1039.</p>
+      </div>
+
+      <p style="margin-top: var(--space-10); color: var(--color-text-faint); font-size: var(--text-xs);">This page summarises the platform-wide Terms &amp; Conditions. Your individual Babysitter Agreement or Family Service Agreement, emailed to you on registration, governs the specific rates, commission, and obligations that apply to you.</p>
     </div>
   </section>
 '''
@@ -734,6 +1038,15 @@ POLICIES_BODY = '''
         "Minimum wage compliance, rate bands, commission structure, and the full refund and cancellation policy for Elite Traders Lounge bookings.",
         "policies",
         POLICIES_BODY,
+    )
+)
+
+(ROOT / "terms.html").write_text(
+    page(
+        "Terms & Conditions — Elite Traders Lounge",
+        "Terms and conditions covering identity verification, proof of address, reference affidavits, Paystack payments, and the right to refuse or cancel service on Elite Traders Lounge.",
+        "terms",
+        TERMS_BODY,
     )
 )
 

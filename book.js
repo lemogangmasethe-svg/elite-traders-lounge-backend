@@ -20,6 +20,33 @@
   };
   var MIN_HOURS = { day: 4, overnight: 10 };
 
+  var API_ORIGIN = (window.ETL_API && window.ETL_API.base) || '';
+
+  // ID type toggle: show/hide SA ID vs Passport field groups
+  var idTypeRadios = form.querySelectorAll('[data-id-type-toggle]');
+  var idFieldGroups = form.querySelectorAll('[data-id-fields]');
+  function syncIdTypeFields() {
+    var checked = form.querySelector('[data-id-type-toggle]:checked');
+    var activeType = checked ? checked.value : 'sa_id';
+    idFieldGroups.forEach(function (group) {
+      var isActive = group.getAttribute('data-id-fields') === activeType;
+      group.hidden = !isActive;
+      group.querySelectorAll('input').forEach(function (input) {
+        if (isActive) {
+          if (input.id === 'id_number' || input.id === 'passport_number' || input.id === 'nationality') {
+            input.required = true;
+          }
+        } else {
+          input.required = false;
+        }
+      });
+    });
+  }
+  idTypeRadios.forEach(function (radio) {
+    radio.addEventListener('change', syncIdTypeFields);
+  });
+  syncIdTypeFields();
+
   var bandHint = document.getElementById('band-hint');
   var levelSel = document.getElementById('level');
   var rateInput = document.getElementById('hourly_rate');
@@ -135,19 +162,31 @@
   var resultBox = document.getElementById('booking-result');
   var resultRef = document.getElementById('result-ref');
   var resultPin = document.getElementById('result-pin');
+  var resultMessage = document.getElementById('result-message');
+  var resultContractLink = document.getElementById('result-contract-link');
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     errorBox.hidden = true;
     if (!form.reportValidity()) return;
 
+    var idTypeChecked = form.querySelector('[data-id-type-toggle]:checked');
+    var idType = idTypeChecked ? idTypeChecked.value : 'sa_id';
+
     var payload = {
       parent_name: form.parent_name.value.trim(),
+      id_type: idType,
       id_number: form.id_number.value.trim(),
+      passport_number: form.passport_number.value.trim(),
+      nationality: form.nationality.value.trim(),
       phone: form.phone.value.trim(),
       email: form.email.value.trim(),
       address: form.address.value.trim(),
       children_count: form.children_count.value.trim(),
+      proof_of_address_type: form.proof_of_address_type.value,
+      proof_of_address_confirmed: form.proof_of_address_confirmed.checked,
+      paystack_email: form.paystack_email.value.trim(),
+      smile_id_consent: form.smile_id_consent.checked,
       booking_date: form.booking_date.value,
       start_time: form.start_time.value,
       rate_type: rateType(),
@@ -164,6 +203,16 @@
       var res = await window.ETL_API.post('/api/bookings', payload);
       resultRef.textContent = res.booking_ref;
       resultPin.textContent = res.pin;
+      if (resultMessage && res.message) {
+        resultMessage.textContent = res.message;
+      }
+      if (resultContractLink && res.contract_url) {
+        resultContractLink.href = API_ORIGIN + res.contract_url;
+        resultContractLink.hidden = false;
+        resultContractLink.textContent = res.contract_emailed
+          ? 'Download Family Service Agreement (also emailed to you)'
+          : 'Download Family Service Agreement';
+      }
       form.hidden = true;
       resultBox.hidden = false;
       resultBox.scrollIntoView({ behavior: 'smooth', block: 'center' });

@@ -35,6 +35,7 @@
         <li><a href="./index.html#trust">Trust &amp; safety</a></li>
         <li><a href="./index.html#pricing">Rates</a></li>
         <li><a href="./policies.html">Policies</a></li>
+        <li><a href="./terms.html">Terms &amp; Conditions</a></li>
         <li><a href="./index.html#faq">FAQ</a></li>
         <li><a href="./index.html#contact">Contact</a></li>
       </ul>
@@ -57,6 +58,7 @@
       <a href="./index.html#trust">Trust &amp; safety</a>
       <a href="./index.html#pricing">Rates</a>
       <a href="./policies.html">Policies</a>
+      <a href="./terms.html">Terms &amp; Conditions</a>
       <a href="./index.html#faq">FAQ</a>
       <a href="./index.html#contact">Contact</a>
       <a href="./register-sitter.html">Become a sitter</a>
@@ -84,15 +86,47 @@
 
           <div class="form-section">
             <div class="form-section__title">Parent / guardian details</div>
-            <div class="field-grid">
-              <div class="field">
-                <label for="parent_name">Full name</label>
-                <input type="text" id="parent_name" name="parent_name" autocomplete="name" required minlength="2" maxlength="120" />
+            <div class="form-section__hint">This information is used for Smile ID identity verification and to contact you about your booking.</div>
+            <div class="field">
+              <label for="parent_name">Full name</label>
+              <input type="text" id="parent_name" name="parent_name" autocomplete="name" required minlength="2" maxlength="120" />
+            </div>
+
+            <div class="field">
+              <label>Identity document</label>
+              <div class="radio-cards" data-id-type-group>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="sa_id" checked data-id-type-toggle />
+                  <strong>South African ID</strong>
+                  <span>SA citizens &amp; permanent residents</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="passport" data-id-type-toggle />
+                  <strong>Passport</strong>
+                  <span>Foreign nationals resident in South Africa</span>
+                </label>
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="sa_id">
               <div class="field">
                 <label for="id_number">South African ID number</label>
-                <input type="text" id="id_number" name="id_number" inputmode="numeric" required minlength="5" maxlength="20" />
+                <input type="text" id="id_number" name="id_number" inputmode="numeric" minlength="5" maxlength="20" />
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="passport" hidden>
+              <div class="field">
+                <label for="passport_number">Passport number</label>
+                <input type="text" id="passport_number" name="passport_number" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="nationality">Nationality</label>
+                <input type="text" id="nationality" name="nationality" maxlength="60" />
+              </div>
+            </div>
+
+            <div class="field-grid">
               <div class="field">
                 <label for="phone">Cellphone number</label>
                 <input type="tel" id="phone" name="phone" autocomplete="tel" required minlength="7" maxlength="20" placeholder="e.g. 081 234 5678" />
@@ -111,6 +145,39 @@
                 <label for="children_count">Number and ages of children</label>
                 <input type="text" id="children_count" name="children_count" required minlength="1" maxlength="20" placeholder="e.g. 2 children, ages 3 and 6" />
               </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Proof of address</div>
+            <div class="form-section__hint">Have a document ready to send to our verification team &mdash; a utility bill, bank statement, lease agreement, or affidavit dated within the last 3 months, matching the home address above.</div>
+            <div class="field">
+              <label for="proof_of_address_type">Proof of address document type</label>
+              <select id="proof_of_address_type" name="proof_of_address_type" required>
+                <option value="" disabled selected>Select a document type</option>
+                <option value="utility_bill">Utility bill (municipal / electricity / water)</option>
+                <option value="bank_statement">Bank statement</option>
+                <option value="lease_agreement">Lease agreement</option>
+                <option value="affidavit">Affidavit confirming residential address</option>
+              </select>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="proof_of_address_confirmed" name="proof_of_address_confirmed" required />
+              <label for="proof_of_address_confirmed">I confirm this document is dated within the last 3 months, matches the home address above, and I will provide a copy to Elite Traders Lounge on request.</label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Verify yourself (Smile ID) &amp; Paystack account</div>
+            <div class="form-section__hint">Elite Traders Lounge partners with Smile ID to confirm your identity before a babysitter is placed in your home. Payments run on Paystack Split Payment &mdash; Elite Traders Lounge never holds your funds in a wallet; Paystack pays the babysitter's share and Elite Traders Lounge's commission share directly, on the same transaction.</div>
+            <div class="field">
+              <label for="paystack_email">Paystack account email</label>
+              <input type="email" id="paystack_email" name="paystack_email" required />
+              <span class="field__hint">Don't have one yet? Create a free account at <a href="https://paystack.com" target="_blank" rel="noopener">paystack.com</a> before submitting.</span>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
+              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) as part of registration.</label>
             </div>
           </div>
 
@@ -176,7 +243,7 @@
           <div class="form-section">
             <div class="checkbox-field">
               <input type="checkbox" id="agreed_terms" name="agreed_terms" required />
-              <label for="agreed_terms">I agree to the Elite Traders Lounge Babysitter Contract, the Appendix C rate bands shown above, and the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>.</label>
+              <label for="agreed_terms">I agree to the Elite Traders Lounge Family Service Agreement (emailed to me on submission), the <a href="./terms.html">Terms &amp; Conditions</a>, the Appendix C rate bands shown above, and the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>. I understand Elite Traders Lounge reserves the right to refuse or cancel service to any user who provides false information or breaches its rules.</label>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn--primary" id="booking-submit">Submit booking request</button>
@@ -191,7 +258,8 @@
         <div id="booking-result" hidden>
           <div class="alert alert--success">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
-            <span>Booking request received. Save your reference and PIN below &mdash; you and your babysitter both need them to confirm arrival and departure.</span>
+            <span id="result-message">Booking request received. Save your reference and PIN below &mdash; you and your babysitter both need them to confirm arrival and departure.</span>
+            <span class="badge-verified badge-verified--pending" style="margin-left: var(--space-3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Verification pending</span>
           </div>
           <div class="booking-ref-box">
             <div class="booking-ref-box__item"><span>Booking reference</span><strong id="result-ref">&ndash;</strong></div>
@@ -199,6 +267,7 @@
           </div>
           <p class="form-section__hint" style="margin-top: var(--space-6);">Share the reference and PIN with your babysitter. When they arrive, both of you confirm on the <a href="./checkin.html">check-in page</a> &mdash; that's what starts the clock on worked hours.</p>
           <a href="./checkin.html" class="btn btn--secondary" style="margin-top: var(--space-4);">Go to check-in tool</a>
+          <a href="#" id="result-contract-link" class="btn btn--secondary" style="margin-top: var(--space-4); margin-left: var(--space-3);" target="_blank" rel="noopener" hidden>Download Family Service Agreement</a>
         </div>
       </div>
     </div>
@@ -217,7 +286,7 @@
           </svg>
           <span class="brand__name"><span>Elite Traders Lounge</span></span>
         </a>
-        <p>A verified, wallet-secured booking platform connecting South African families with independent babysitters. Registration K2017318876.</p>
+        <p>A verified booking platform connecting South African families with independent babysitters. Payments are processed and settled securely through Paystack Split Payments. Registration K2017318876.</p>
       </div>
       <div>
         <h4>Platform</h4>
@@ -244,6 +313,7 @@
           <li><a href="./policies.html#minimum-wage">Minimum wage &amp; rate bands</a></li>
           <li><a href="./policies.html#refund-policy">Refund &amp; cancellation policy</a></li>
           <li><a href="./policies.html#popia">POPIA &amp; data protection</a></li>
+          <li><a href="./terms.html">Terms &amp; Conditions</a></li>
           <li><a href="./policies.html">All policies</a></li>
         </ul>
       </div>

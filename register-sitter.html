@@ -35,6 +35,7 @@
         <li><a href="./index.html#trust">Trust &amp; safety</a></li>
         <li><a href="./index.html#pricing">Rates</a></li>
         <li><a href="./policies.html">Policies</a></li>
+        <li><a href="./terms.html">Terms &amp; Conditions</a></li>
         <li><a href="./index.html#faq">FAQ</a></li>
         <li><a href="./index.html#contact">Contact</a></li>
       </ul>
@@ -57,6 +58,7 @@
       <a href="./index.html#trust">Trust &amp; safety</a>
       <a href="./index.html#pricing">Rates</a>
       <a href="./policies.html">Policies</a>
+      <a href="./terms.html">Terms &amp; Conditions</a>
       <a href="./index.html#faq">FAQ</a>
       <a href="./index.html#contact">Contact</a>
       <a href="./register-sitter.html">Become a sitter</a>
@@ -73,7 +75,7 @@
       <div class="breadcrumb"><a href="./index.html">Home</a> <span>/</span> <span>Register as a babysitter</span></div>
       <span class="eyebrow">Babysitter sign-up</span>
       <h1>Join Elite Traders Lounge as a verified babysitter.</h1>
-      <p>Tell us about your experience so we can place you in the right rate band. Every applicant completes SmileID identity verification before receiving bookings, and every booking pays at or above the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; never negotiated down.</p>
+      <p>Tell us about your experience so we can place you in the right rate band. Every applicant completes Smile ID identity verification before receiving bookings, and every booking pays at or above the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; never negotiated down.</p>
     </div>
   </section>
 
@@ -84,16 +86,56 @@
 
           <div class="form-section">
             <div class="form-section__title">Your details</div>
-            <div class="form-section__hint">This information is used for identity verification and to contact you about bookings.</div>
-            <div class="field-grid">
-              <div class="field">
-                <label for="full_name">Full name</label>
-                <input type="text" id="full_name" name="full_name" autocomplete="name" required minlength="2" maxlength="120" />
+            <div class="form-section__hint">This information is used for Smile ID identity verification and to contact you about bookings.</div>
+            <div class="field">
+              <label for="full_name">Full name</label>
+              <input type="text" id="full_name" name="full_name" autocomplete="name" required minlength="2" maxlength="120" />
+            </div>
+
+            <div class="field">
+              <label>Identity document</label>
+              <div class="radio-cards" data-id-type-group>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="sa_id" checked data-id-type-toggle />
+                  <strong>South African ID</strong>
+                  <span>SA citizens &amp; permanent residents</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="passport" data-id-type-toggle />
+                  <strong>Passport + work permit</strong>
+                  <span>Foreign nationals registering as freelancers</span>
+                </label>
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="sa_id">
               <div class="field">
                 <label for="id_number">South African ID number</label>
-                <input type="text" id="id_number" name="id_number" inputmode="numeric" required minlength="5" maxlength="20" />
+                <input type="text" id="id_number" name="id_number" inputmode="numeric" minlength="5" maxlength="20" />
               </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="passport" hidden>
+              <div class="field">
+                <label for="passport_number">Passport number</label>
+                <input type="text" id="passport_number" name="passport_number" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="nationality">Nationality</label>
+                <input type="text" id="nationality" name="nationality" maxlength="60" />
+              </div>
+              <div class="field">
+                <label for="work_permit_number">Work permit number</label>
+                <input type="text" id="work_permit_number" name="work_permit_number" maxlength="40" />
+                <span class="field__hint">Required by South African immigration law &mdash; freelance babysitters who are not SA citizens or permanent residents must hold a valid work permit.</span>
+              </div>
+              <div class="field">
+                <label for="work_permit_expiry">Work permit expiry date</label>
+                <input type="date" id="work_permit_expiry" name="work_permit_expiry" />
+              </div>
+            </div>
+
+            <div class="field-grid">
               <div class="field">
                 <label for="phone">Cellphone number</label>
                 <input type="tel" id="phone" name="phone" autocomplete="tel" required minlength="7" maxlength="20" placeholder="e.g. 081 234 5678" />
@@ -106,6 +148,34 @@
             <div class="field">
               <label for="address">Home address</label>
               <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Proof of address</div>
+            <div class="form-section__hint">Have a document ready to send to our verification team &mdash; a utility bill, bank statement, lease agreement, or affidavit dated within the last 3 months, matching the home address above.</div>
+            <div class="field">
+              <label for="proof_of_address_type">Proof of address document type</label>
+              <select id="proof_of_address_type" name="proof_of_address_type" required>
+                <option value="" disabled selected>Select a document type</option>
+                <option value="utility_bill">Utility bill (municipal / electricity / water)</option>
+                <option value="bank_statement">Bank statement</option>
+                <option value="lease_agreement">Lease agreement</option>
+                <option value="affidavit">Affidavit confirming residential address</option>
+              </select>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="proof_of_address_confirmed" name="proof_of_address_confirmed" required />
+              <label for="proof_of_address_confirmed">I confirm this document is dated within the last 3 months, matches the home address above, and I will provide a copy to Elite Traders Lounge on request.</label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Verify yourself (Smile ID)</div>
+            <div class="form-section__hint">Elite Traders Lounge partners with Smile ID to confirm your identity against your ID/passport and run a facial-liveness check before you can accept bookings. Once verified, your profile displays a &ldquo;Verified identity&rdquo; badge that families can see.</div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
+              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) as part of registration.</label>
             </div>
           </div>
 
@@ -151,35 +221,48 @@
               <label for="availability">Availability</label>
               <input type="text" id="availability" name="availability" required minlength="2" maxlength="300" placeholder="e.g. Weekday evenings, weekends, overnight from Fridays" />
             </div>
-            <div class="field">
-              <label for="references_text">References</label>
-              <textarea id="references_text" name="references_text" required minlength="5" maxlength="1000" placeholder="Name, relationship, and contact number for at least one reference"></textarea>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Reference &amp; affidavit</div>
+            <div class="form-section__hint">Provide one contactable reference. This person will be asked to complete and sign the standard Reference Affidavit (Appendix A of your contract) before a Commissioner of Oaths, confirming your character and childcare experience.</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="reference_name">Reference full name</label>
+                <input type="text" id="reference_name" name="reference_name" required minlength="2" maxlength="120" />
+              </div>
+              <div class="field">
+                <label for="reference_relationship">Relationship to you</label>
+                <input type="text" id="reference_relationship" name="reference_relationship" required minlength="2" maxlength="80" placeholder="e.g. Former employer, family friend" />
+              </div>
+              <div class="field">
+                <label for="reference_phone">Reference cellphone number</label>
+                <input type="tel" id="reference_phone" name="reference_phone" required minlength="7" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="reference_email">Reference email address</label>
+                <input type="email" id="reference_email" name="reference_email" required />
+              </div>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="reference_affidavit_consent" name="reference_affidavit_consent" required />
+              <label for="reference_affidavit_consent">I confirm this reference has agreed to be contacted by Elite Traders Lounge and to complete the Reference Affidavit template in Appendix A of the Babysitter Contract.</label>
             </div>
           </div>
 
           <div class="form-section">
-            <div class="form-section__title">Payout details</div>
-            <div class="form-section__hint">Net earnings settle to this account by EFT within 3&ndash;5 business days after a family confirms the booking, with zero withdrawal fees.</div>
-            <div class="field-grid field-grid--3">
-              <div class="field">
-                <label for="bank_name">Bank</label>
-                <input type="text" id="bank_name" name="bank_name" required minlength="2" maxlength="100" />
-              </div>
-              <div class="field">
-                <label for="account_holder">Account holder name</label>
-                <input type="text" id="account_holder" name="account_holder" required minlength="2" maxlength="120" />
-              </div>
-              <div class="field">
-                <label for="account_number">Account number</label>
-                <input type="text" id="account_number" name="account_number" inputmode="numeric" required minlength="4" maxlength="40" />
-              </div>
+            <div class="form-section__title">Paystack payout account</div>
+            <div class="form-section__hint">Elite Traders Lounge uses Paystack Split Payment: every booking pays into Paystack once, and Paystack pays your net share directly to your own Paystack account &mdash; Elite Traders Lounge never holds or is responsible for your funds. Enter the email address linked to your Paystack account; if you don't have one yet, create a free account at <a href="https://paystack.com" target="_blank" rel="noopener">paystack.com</a> before submitting.</div>
+            <div class="field">
+              <label for="paystack_email">Paystack account email</label>
+              <input type="email" id="paystack_email" name="paystack_email" required />
             </div>
           </div>
 
           <div class="form-section">
             <div class="checkbox-field">
               <input type="checkbox" id="agreed_terms" name="agreed_terms" required />
-              <label for="agreed_terms">I confirm the details above are accurate and I agree to the Elite Traders Lounge Babysitter Contract, including Appendix C rate bands, the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>, and the <a href="./policies.html#popia">POPIA data protection terms</a>.</label>
+              <label for="agreed_terms">I confirm the details above are accurate and I agree to the Elite Traders Lounge Babysitter Contract (emailed to me on submission), the <a href="./terms.html">Terms &amp; Conditions</a>, the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>, and the <a href="./policies.html#popia">POPIA data protection terms</a>. I understand Elite Traders Lounge reserves the right to refuse or cancel service to any user who provides false information or breaches its rules.</label>
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn--primary" id="sitter-submit">Submit application</button>
@@ -187,7 +270,9 @@
             </div>
             <div class="alert alert--success" id="sitter-success" hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
-              <span>Application received. Our team will contact you to complete SmileID verification before you can accept bookings.</span>
+              <span id="sitter-success-text">Application received. Our team will contact you to complete Smile ID verification before you can accept bookings.</span>
+              <span class="badge-verified badge-verified--pending" style="margin-left: var(--space-3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Verification pending</span>
+              <a href="#" id="sitter-contract-link" style="margin-left: var(--space-3); white-space: nowrap;" target="_blank" rel="noopener" hidden>Download contract</a>
             </div>
             <div class="alert alert--error" id="sitter-error" hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
@@ -212,7 +297,7 @@
           </svg>
           <span class="brand__name"><span>Elite Traders Lounge</span></span>
         </a>
-        <p>A verified, wallet-secured booking platform connecting South African families with independent babysitters. Registration K2017318876.</p>
+        <p>A verified booking platform connecting South African families with independent babysitters. Payments are processed and settled securely through Paystack Split Payments. Registration K2017318876.</p>
       </div>
       <div>
         <h4>Platform</h4>
@@ -239,6 +324,7 @@
           <li><a href="./policies.html#minimum-wage">Minimum wage &amp; rate bands</a></li>
           <li><a href="./policies.html#refund-policy">Refund &amp; cancellation policy</a></li>
           <li><a href="./policies.html#popia">POPIA &amp; data protection</a></li>
+          <li><a href="./terms.html">Terms &amp; Conditions</a></li>
           <li><a href="./policies.html">All policies</a></li>
         </ul>
       </div>

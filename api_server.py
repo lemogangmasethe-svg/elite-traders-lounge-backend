@@ -10,15 +10,19 @@ Runs on port 8000 inside the sandbox.
 import os
 import random
 import re
+import smtplib
 import sqlite3
 import string
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from email.message import EmailMessage
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, field_validator
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -53,9 +57,9 @@ CREATE TABLE IF NOT EXISTS babysitters (
     certifications TEXT,
     references_text TEXT NOT NULL,
     availability TEXT NOT NULL,
-    bank_name TEXT NOT NULL,
-    account_holder TEXT NOT NULL,
-    account_number TEXT NOT NULL,
+    bank_name TEXT NOT NULL DEFAULT '',
+    account_holder TEXT NOT NULL DEFAULT '',
+    account_number TEXT NOT NULL DEFAULT '',
     agreed_terms INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'pending_verification',
     created_at TEXT NOT NULL
@@ -92,6 +96,49 @@ CREATE TABLE IF NOT EXISTS checkins (
     timestamp TEXT NOT NULL
 );
 """
+
+# Columns added after the original launch (identity/verification, proof of
+# address, reference/affidavit, and Paystack account details). Applied via
+# idempotent ALTER TABLE migrations below so existing rows in both SQLite
+# (sandbox preview) and Postgres/Neon (production) keep working.
+MIGRATION_COLUMNS = [
+    ("babysitters", "id_type", "TEXT NOT NULL DEFAULT 'sa_id'"),
+    ("babysitters", "passport_number", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "nationality", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "work_permit_number", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "work_permit_expiry", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "proof_of_address_type", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "proof_of_address_confirmed", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "paystack_email", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "smile_id_consent", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "reference_name", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "reference_relationship", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "reference_phone", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "reference_email", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "reference_affidavit_consent", "INTEGER NOT NULL DEFAULT 0"),
+    ("babysitters", "contract_sent", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "id_type", "TEXT NOT NULL DEFAULT 'sa_id'"),
+    ("bookings", "passport_number", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "nationality", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "proof_of_address_type", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "proof_of_address_confirmed", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "paystack_email", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "smile_id_consent", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "contract_sent", "INTEGER NOT NULL DEFAULT 0"),
+]
+
+
+def run_migrations(conn):
+    for table, column, coldef in MIGRATION_COLUMNS:
+        try:
+            if USE_POSTGRES:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {coldef}")
+            else:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {coldef}")
+        except Exception:
+            pass  # column already exists
+    conn.commit()
+
 
 if USE_POSTGRES:
     import psycopg2
@@ -161,6 +208,7 @@ db = get_db()
 if not USE_POSTGRES:
     db.executescript(SCHEMA_SQL)
     db.commit()
+run_migrations(db)
 
 
 @asynccontextmanager
@@ -210,27 +258,87 @@ def gen_pin() -> str:
 
 class SitterRegistration(BaseModel):
     full_name: str = Field(min_length=2, max_length=120)
-    id_number: str = Field(min_length=5, max_length=20)
+    id_type: str = "sa_id"
+    id_number: Optional[str] = Field(default="", max_length=20)
+    passport_number: Optional[str] = ""
+    nationality: Optional[str] = ""
+    work_permit_number: Optional[str] = ""
+    work_permit_expiry: Optional[str] = ""
     phone: str = Field(min_length=7, max_length=20)
     email: str
     address: str = Field(min_length=5, max_length=300)
+    proof_of_address_type: str = Field(min_length=2, max_length=60)
+    proof_of_address_confirmed: bool
     experience_level: str
     years_experience: str
     certifications: Optional[str] = ""
-    references_text: str = Field(min_length=5, max_length=1000)
+    reference_name: str = Field(min_length=2, max_length=120)
+    reference_relationship: str = Field(min_length=2, max_length=80)
+    reference_phone: str = Field(min_length=7, max_length=20)
+    reference_email: str
+    reference_affidavit_consent: bool
     availability: str = Field(min_length=2, max_length=300)
-    bank_name: str = Field(min_length=2, max_length=100)
-    account_holder: str = Field(min_length=2, max_length=120)
-    account_number: str = Field(min_length=4, max_length=40)
+    paystack_email: str
+    smile_id_consent: bool
+    bank_name: Optional[str] = ""
+    account_holder: Optional[str] = ""
+    account_number: Optional[str] = ""
     agreed_terms: bool
 
     _validate_email = field_validator("email")(validate_email)
+    _validate_reference_email = field_validator("reference_email")(validate_email)
+    _validate_paystack_email = field_validator("paystack_email")(validate_email)
 
     @field_validator("experience_level")
     @classmethod
     def check_level(cls, v):
         if v not in LEVELS:
             raise ValueError("experience_level must be 1, 2, 3 or 4")
+        return v
+
+    @field_validator("id_type")
+    @classmethod
+    def check_id_type(cls, v):
+        if v not in {"sa_id", "passport"}:
+            raise ValueError("id_type must be 'sa_id' or 'passport'")
+        return v
+
+    @model_validator(mode="after")
+    def check_id_fields(self):
+        if self.id_type == "passport":
+            missing = [
+                name for name in ("passport_number", "nationality", "work_permit_number", "work_permit_expiry")
+                if not (getattr(self, name) or "").strip()
+            ]
+            if missing:
+                raise ValueError(
+                    "passport, nationality, and a valid work permit number + expiry date are required for "
+                    "non-South African freelance babysitters to stay compliant with SA immigration law"
+                )
+        else:
+            if len((self.id_number or "").strip()) < 5:
+                raise ValueError("a valid South African ID number (at least 5 characters) is required")
+        return self
+
+    @field_validator("proof_of_address_confirmed")
+    @classmethod
+    def check_poa(cls, v):
+        if not v:
+            raise ValueError("you must confirm your proof of address document matches your registered address")
+        return v
+
+    @field_validator("reference_affidavit_consent")
+    @classmethod
+    def check_affidavit(cls, v):
+        if not v:
+            raise ValueError("you must consent to your reference being contacted and to swearing the reference affidavit")
+        return v
+
+    @field_validator("smile_id_consent")
+    @classmethod
+    def check_smile_id(cls, v):
+        if not v:
+            raise ValueError("you must consent to Smile ID identity verification to register")
         return v
 
     @field_validator("agreed_terms")
@@ -243,13 +351,21 @@ class SitterRegistration(BaseModel):
 
 class BookingRequest(BaseModel):
     parent_name: str = Field(min_length=2, max_length=120)
-    id_number: str = Field(min_length=5, max_length=20)
+    id_type: str = "sa_id"
+    id_number: Optional[str] = Field(default="", max_length=20)
+    passport_number: Optional[str] = ""
+    nationality: Optional[str] = ""
     phone: str = Field(min_length=7, max_length=20)
     email: str
     address: str = Field(min_length=5, max_length=300)
+    proof_of_address_type: str = Field(min_length=2, max_length=60)
+    proof_of_address_confirmed: bool
     children_count: str = Field(min_length=1, max_length=20)
+    paystack_email: str
+    smile_id_consent: bool
 
     _validate_email = field_validator("email")(validate_email)
+    _validate_paystack_email = field_validator("paystack_email")(validate_email)
     booking_date: str
     start_time: str
     rate_type: str
@@ -264,6 +380,41 @@ class BookingRequest(BaseModel):
     def check_level(cls, v):
         if v not in LEVELS:
             raise ValueError("level must be 1, 2, 3 or 4")
+        return v
+
+    @field_validator("id_type")
+    @classmethod
+    def check_id_type(cls, v):
+        if v not in {"sa_id", "passport"}:
+            raise ValueError("id_type must be 'sa_id' or 'passport'")
+        return v
+
+    @model_validator(mode="after")
+    def check_id_fields(self):
+        if self.id_type == "passport":
+            missing = [
+                name for name in ("passport_number", "nationality")
+                if not (getattr(self, name) or "").strip()
+            ]
+            if missing:
+                raise ValueError("passport number and nationality are required for passport holders")
+        else:
+            if len((self.id_number or "").strip()) < 5:
+                raise ValueError("a valid South African ID number (at least 5 characters) is required")
+        return self
+
+    @field_validator("proof_of_address_confirmed")
+    @classmethod
+    def check_poa(cls, v):
+        if not v:
+            raise ValueError("you must confirm your proof of address document matches your registered address")
+        return v
+
+    @field_validator("smile_id_consent")
+    @classmethod
+    def check_smile_id(cls, v):
+        if not v:
+            raise ValueError("you must consent to Smile ID identity verification to book a sitter")
         return v
 
     @field_validator("rate_type")
@@ -331,6 +482,73 @@ def compute_rate_check(level: str, rate_type: str, hourly_rate: float, duration_
     }
 
 
+# ---------------------------------------------------------------------------
+# Contract PDF delivery: served as static downloads and, when SMTP env vars
+# are configured, emailed to the registrant on submission. Missing SMTP
+# config degrades gracefully — registration/booking still succeeds and the
+# contract remains available as a direct download link.
+# ---------------------------------------------------------------------------
+CONTRACTS_DIR = Path(__file__).resolve().parent / "assets" / "contracts"
+CONTRACT_FILES = {
+    "sitter": "elite-traders-lounge-babysitter-agreement-2026.pdf",
+    "family": "elite-traders-lounge-family-agreement-2026.pdf",
+}
+if CONTRACTS_DIR.exists():
+    app.mount("/contracts", StaticFiles(directory=str(CONTRACTS_DIR)), name="contracts")
+
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587") or "587")
+SMTP_USER = os.environ.get("SMTP_USER", "").strip()
+SMTP_PASS = os.environ.get("SMTP_PASS", "").strip()
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "").strip() or SMTP_USER
+
+
+def contract_url_for(kind: str) -> Optional[str]:
+    filename = CONTRACT_FILES.get(kind)
+    if not filename or not (CONTRACTS_DIR / filename).exists():
+        return None
+    return f"/contracts/{filename}"
+
+
+def send_contract_email(to_email: str, recipient_name: str, kind: str) -> bool:
+    """Best-effort email of the signed-ready contract PDF. Returns True only
+    if the message was actually sent. Never raises — SMTP not being
+    configured (or failing) must not block registration/booking."""
+    filename = CONTRACT_FILES.get(kind)
+    if not filename or not SMTP_HOST or not SMTP_USER or not SMTP_PASS or not EMAIL_FROM:
+        return False
+    pdf_path = CONTRACTS_DIR / filename
+    if not pdf_path.exists():
+        return False
+    try:
+        label = "Babysitter Service Agreement" if kind == "sitter" else "Family Service Agreement"
+        msg = EmailMessage()
+        msg["Subject"] = f"Elite Traders Lounge — Your {label} (2026)"
+        msg["From"] = EMAIL_FROM
+        msg["To"] = to_email
+        msg.set_content(
+            f"Hi {recipient_name},\n\n"
+            f"Thank you for registering with Elite Traders Lounge. Attached is your {label} for 2026, "
+            "covering rates, the commission structure, cancellation policy, identity verification, and "
+            "Paystack Split Payment details.\n\n"
+            "Please read it in full. Continuing to use the platform after registration constitutes your "
+            "acceptance of these terms (see Section 16, Digital Signatures, in the agreement, and our "
+            "Terms & Conditions at /terms.html).\n\n"
+            "Elite Traders Lounge (Reg. K2017318876)\n"
+            "lemo.masethe@elitetraders.co.za | +27 81 427 0419"
+        )
+        msg.add_attachment(
+            pdf_path.read_bytes(), maintype="application", subtype="pdf", filename=filename
+        )
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+        return True
+    except Exception:
+        return False
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True}
@@ -338,22 +556,44 @@ def health():
 
 @app.post("/api/register-sitter", status_code=201)
 def register_sitter(payload: SitterRegistration):
+    emailed = send_contract_email(payload.email, payload.full_name, "sitter")
     cur = db.execute(
         """INSERT INTO babysitters
-        (full_name, id_number, phone, email, address, experience_level, years_experience,
-         certifications, references_text, availability, bank_name, account_holder,
-         account_number, agreed_terms, status, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (full_name, id_type, id_number, passport_number, nationality, work_permit_number,
+         work_permit_expiry, phone, email, address, proof_of_address_type,
+         proof_of_address_confirmed, experience_level, years_experience, certifications,
+         references_text, availability, reference_name, reference_relationship,
+         reference_phone, reference_email, reference_affidavit_consent, paystack_email,
+         smile_id_consent, bank_name, account_holder, account_number, agreed_terms,
+         contract_sent, status, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
-            payload.full_name, payload.id_number, payload.phone, payload.email, payload.address,
-            payload.experience_level, payload.years_experience, payload.certifications,
-            payload.references_text, payload.availability, payload.bank_name,
+            payload.full_name, payload.id_type, payload.id_number, payload.passport_number,
+            payload.nationality, payload.work_permit_number, payload.work_permit_expiry,
+            payload.phone, payload.email, payload.address, payload.proof_of_address_type,
+            int(payload.proof_of_address_confirmed), payload.experience_level,
+            payload.years_experience, payload.certifications,
+            f"{payload.reference_name} ({payload.reference_relationship}) — {payload.reference_phone}, {payload.reference_email}",
+            payload.availability, payload.reference_name, payload.reference_relationship,
+            payload.reference_phone, payload.reference_email, int(payload.reference_affidavit_consent),
+            payload.paystack_email, int(payload.smile_id_consent), payload.bank_name,
             payload.account_holder, payload.account_number, int(payload.agreed_terms),
-            "pending_verification", now_iso(),
+            int(emailed), "pending_verification", now_iso(),
         ),
     )
     db.commit()
-    return {"id": cur.lastrowid, "status": "pending_verification", "message": "Application received. Our team will contact you to complete SmileID verification."}
+    return {
+        "id": cur.lastrowid,
+        "status": "pending_verification",
+        "contract_url": contract_url_for("sitter"),
+        "contract_emailed": emailed,
+        "message": (
+            "Application received. Our team will contact you to complete Smile ID verification and confirm "
+            "your reference/affidavit. "
+            + ("Your Babysitter Service Agreement has been emailed to you." if emailed
+               else "Download your Babysitter Service Agreement below — we'll also email a copy once it's ready.")
+        ),
+    }
 
 
 @app.post("/api/bookings", status_code=201)
@@ -361,17 +601,23 @@ def create_booking(payload: BookingRequest):
     quote = compute_rate_check(payload.level, payload.rate_type, payload.hourly_rate, payload.duration_hours)
     ref = gen_booking_ref()
     pin = gen_pin()
+    emailed = send_contract_email(payload.email, payload.parent_name, "family")
     db.execute(
         """INSERT INTO bookings
-        (booking_ref, pin, parent_name, id_number, phone, email, address, children_count,
-         booking_date, start_time, rate_type, level, hourly_rate, duration_hours,
-         special_instructions, status, agreed_terms, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (booking_ref, pin, parent_name, id_type, id_number, passport_number, nationality,
+         phone, email, address, proof_of_address_type, proof_of_address_confirmed,
+         children_count, paystack_email, smile_id_consent, booking_date, start_time,
+         rate_type, level, hourly_rate, duration_hours, special_instructions, status,
+         agreed_terms, contract_sent, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
-            ref, pin, payload.parent_name, payload.id_number, payload.phone, payload.email,
-            payload.address, payload.children_count, payload.booking_date, payload.start_time,
-            payload.rate_type, payload.level, quote["applied_hourly_rate"], payload.duration_hours,
-            payload.special_instructions, "pending_match", int(payload.agreed_terms), now_iso(),
+            ref, pin, payload.parent_name, payload.id_type, payload.id_number,
+            payload.passport_number, payload.nationality, payload.phone, payload.email,
+            payload.address, payload.proof_of_address_type, int(payload.proof_of_address_confirmed),
+            payload.children_count, payload.paystack_email, int(payload.smile_id_consent),
+            payload.booking_date, payload.start_time, payload.rate_type, payload.level,
+            quote["applied_hourly_rate"], payload.duration_hours, payload.special_instructions,
+            "pending_match", int(payload.agreed_terms), int(emailed), now_iso(),
         ),
     )
     db.commit()
@@ -379,7 +625,14 @@ def create_booking(payload: BookingRequest):
         "booking_ref": ref,
         "pin": pin,
         "quote": quote,
-        "message": "Booking request received. Save your booking reference and PIN — you and your babysitter will both need them to confirm arrival and departure.",
+        "contract_url": contract_url_for("family"),
+        "contract_emailed": emailed,
+        "message": (
+            "Booking request received. Save your booking reference and PIN — you and your babysitter will both "
+            "need them to confirm arrival and departure. "
+            + ("Your Family Service Agreement has been emailed to you." if emailed
+               else "Download your Family Service Agreement below — we'll also email a copy once it's ready.")
+        ),
     }
 
 

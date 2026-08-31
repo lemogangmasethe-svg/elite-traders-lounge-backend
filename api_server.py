@@ -209,6 +209,24 @@ MIGRATION_COLUMNS = [
     # e.g. when the online system is down) rather than submitted by a
     # family through the website.
     ("bookings", "created_by_admin", "INTEGER NOT NULL DEFAULT 0"),
+    # Annual re-verification: a Child Protection Register (Part B) clearance
+    # is required from every babysitter (separate from the criminal-record
+    # police clearance above); a second, foreign police clearance is
+    # required only from non-South African babysitters, covering any
+    # country they lived in for 12+ months as an adult in the last 5 years.
+    # verification_issued_date is the date the current set of documents was
+    # accepted — the annual due date is that date + 365 days. fee_paid_at
+    # records when the (now annual, not once-off) R99 fee was last
+    # confirmed paid, for both babysitters and families.
+    ("babysitters", "child_protection_clearance_data", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "child_protection_clearance_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "child_protection_clearance_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "foreign_police_clearance_data", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "foreign_police_clearance_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "foreign_police_clearance_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "verification_issued_date", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "fee_paid_at", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "fee_paid_at", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 # Document upload constants — used by /api/sitter/documents and
@@ -216,7 +234,7 @@ MIGRATION_COLUMNS = [
 # "selfie" applies to both sitters and families; "police_clearance" is a
 # babysitter-only mandatory upload (SITTER_ONLY_DOCUMENT_KINDS below).
 DOCUMENT_KINDS = ("id_document", "proof_of_address", "selfie")
-SITTER_ONLY_DOCUMENT_KINDS = ("police_clearance",)
+SITTER_ONLY_DOCUMENT_KINDS = ("police_clearance", "child_protection_clearance", "foreign_police_clearance")
 MAX_DOCUMENT_BYTES = 6 * 1024 * 1024  # 6MB
 ALLOWED_DOCUMENT_MIMETYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"}
 ALLOWED_SELFIE_MIMETYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
@@ -382,7 +400,7 @@ def authenticate_sitter(email: str, access_code: str) -> dict:
 
 
 def sitter_public(row: dict) -> dict:
-    return {
+    result = {
         "id": row["id"],
         "full_name": row["full_name"],
         "email": row["email"],
@@ -392,7 +410,12 @@ def sitter_public(row: dict) -> dict:
         "unavailable_dates": sorted(d for d in (row.get("unavailable_dates") or "").split(",") if d),
         "has_id_document": bool(row.get("id_document_data")),
         "has_proof_of_address": bool(row.get("proof_of_address_data")),
+        "id_type": row.get("id_type") or "sa_id",
+        "registration_fee_paid": bool(row.get("registration_fee_paid")),
+        "fee_paid_at": row.get("fee_paid_at") or "",
     }
+    result.update(compute_verification_status(row.get("verification_issued_date", ""), row.get("created_at", "")))
+    return result
 
 
 GENDER_LABELS = {"female": "Female", "male": "Male", "prefer_not_to_say": "Prefer not to say"}
@@ -421,6 +444,9 @@ def sitter_public_profile(row: dict, available: Optional[bool] = None) -> dict:
         "has_photo": bool(row.get("selfie_data")),
         "photo_url": f"/api/babysitters/{row['id']}/photo" if row.get("selfie_data") else None,
         "available": available,
+        "verification_due_date": compute_verification_status(
+            row.get("verification_issued_date", ""), row.get("created_at", "")
+        ).get("verification_due_date", ""),
     }
 
 
@@ -501,6 +527,43 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+VERIFICATION_VALID_DAYS = 365
+VERIFICATION_DUE_SOON_DAYS = 30
+
+
+def compute_verification_status(verification_issued_date: str, created_at: str) -> dict:
+    """Annual re-verification tracker for babysitters. A fresh police
+    clearance + Child Protection Register check is required every 12
+    months; this computes when that's due from whichever date we have —
+    the last recorded renewal, or registration date for sitters who
+    haven't renewed yet. Returns issued/due dates plus a status label the
+    admin and sitter dashboards can colour-code."""
+    basis = (verification_issued_date or "").strip()
+    if not basis and created_at:
+        basis = created_at[:10]
+    if not basis:
+        return {"verification_issued_date": "", "verification_due_date": "", "verification_status": "unknown"}
+    try:
+        issued = datetime.fromisoformat(basis[:10])
+    except ValueError:
+        return {"verification_issued_date": basis, "verification_due_date": "", "verification_status": "unknown"}
+    due = issued + timedelta(days=VERIFICATION_VALID_DAYS)
+    today = datetime.now(timezone.utc).replace(tzinfo=None)
+    days_left = (due - today).days
+    if days_left < 0:
+        status = "overdue"
+    elif days_left <= VERIFICATION_DUE_SOON_DAYS:
+        status = "due_soon"
+    else:
+        status = "current"
+    return {
+        "verification_issued_date": basis,
+        "verification_due_date": due.strftime("%Y-%m-%d"),
+        "verification_status": status,
+        "verification_days_left": days_left,
+    }
+
+
 def gen_booking_ref() -> str:
     for _ in range(20):
         ref = "ETL-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -557,6 +620,12 @@ class SitterRegistration(BaseModel):
     police_clearance_data: str = Field(default="")
     police_clearance_filename: str = Field(default="")
     police_clearance_mimetype: str = Field(default="")
+    child_protection_clearance_data: str = Field(default="")
+    child_protection_clearance_filename: str = Field(default="")
+    child_protection_clearance_mimetype: str = Field(default="")
+    foreign_police_clearance_data: str = Field(default="")
+    foreign_police_clearance_filename: str = Field(default="")
+    foreign_police_clearance_mimetype: str = Field(default="")
 
     _validate_email = field_validator("email")(validate_email)
     _validate_reference_email = field_validator("reference_email")(validate_email)
@@ -647,6 +716,16 @@ class SitterRegistration(BaseModel):
             self.police_clearance_data, self.police_clearance_mimetype, self.police_clearance_filename,
             "police clearance certificate",
         )
+        validate_document_fields(
+            self.child_protection_clearance_data, self.child_protection_clearance_mimetype,
+            self.child_protection_clearance_filename, "Child Protection Register (Part B) clearance letter",
+        )
+        if self.id_type == "passport":
+            validate_document_fields(
+                self.foreign_police_clearance_data, self.foreign_police_clearance_mimetype,
+                self.foreign_police_clearance_filename,
+                "foreign police clearance certificate",
+            )
         return self
 
 
@@ -933,8 +1012,11 @@ def register_sitter(payload: SitterRegistration):
          proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype,
          selfie_data, selfie_filename, selfie_mimetype, liveness_images_json,
          police_clearance_data, police_clearance_filename, police_clearance_mimetype,
+         child_protection_clearance_data, child_protection_clearance_filename, child_protection_clearance_mimetype,
+         foreign_police_clearance_data, foreign_police_clearance_filename, foreign_police_clearance_mimetype,
+         verification_issued_date,
          profile_gender, profile_race, profile_age)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             payload.full_name, payload.id_type, payload.id_number, payload.passport_number,
             payload.nationality, payload.work_permit_number, payload.work_permit_expiry,
@@ -951,6 +1033,11 @@ def register_sitter(payload: SitterRegistration):
             payload.proof_of_address_data, payload.proof_of_address_filename, payload.proof_of_address_mimetype,
             payload.selfie_data, payload.selfie_filename, payload.selfie_mimetype, liveness_json,
             payload.police_clearance_data, payload.police_clearance_filename, payload.police_clearance_mimetype,
+            payload.child_protection_clearance_data, payload.child_protection_clearance_filename,
+            payload.child_protection_clearance_mimetype,
+            payload.foreign_police_clearance_data, payload.foreign_police_clearance_filename,
+            payload.foreign_police_clearance_mimetype,
+            now_iso()[:10],
             payload.profile_gender, payload.profile_race, str(payload.profile_age),
         ),
     )
@@ -1148,6 +1235,8 @@ def strip_document_blobs(row: dict, extra_kinds=()) -> dict:
 @app.get("/api/admin/sitters")
 def admin_list_sitters(admin_ok: bool = Depends(require_admin)):
     rows = [dict(r) for r in db.execute("SELECT * FROM babysitters ORDER BY created_at DESC").fetchall()]
+    for r in rows:
+        r.update(compute_verification_status(r.get("verification_issued_date", ""), r.get("created_at", "")))
     rows = [strip_document_blobs(r, extra_kinds=SITTER_ONLY_DOCUMENT_KINDS) for r in rows]
     return {"sitters": rows}
 
@@ -1185,6 +1274,11 @@ class AdminSitterVerifyRequest(BaseModel):
     profile_gender: Optional[str] = None
     profile_race: Optional[str] = None
     profile_age: Optional[int] = None
+    # Optional admin control: set/reset the date the current police
+    # clearance + Child Protection Register documents were accepted. This
+    # resets the 12-month annual re-verification clock. Leave unset (None)
+    # to keep the existing date unchanged.
+    verification_issued_date: Optional[str] = None
 
     @field_validator("rating")
     @classmethod
@@ -1218,7 +1312,8 @@ class AdminSitterVerifyRequest(BaseModel):
 @app.post("/api/admin/sitters/{sitter_id}/verify")
 def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin_ok: bool = Depends(require_admin)):
     row = db.execute(
-        "SELECT id, rating, profile_gender, profile_race, profile_age FROM babysitters WHERE id = ?", (sitter_id,)
+        "SELECT id, rating, profile_gender, profile_race, profile_age, registration_fee_paid, fee_paid_at, "
+        "verification_issued_date FROM babysitters WHERE id = ?", (sitter_id,)
     ).fetchone()
     if not row:
         raise HTTPException(404, "Sitter not found.")
@@ -1234,16 +1329,30 @@ def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin
     profile_gender = payload.profile_gender if payload.profile_gender else row["profile_gender"]
     profile_race = payload.profile_race if payload.profile_race else row["profile_race"]
     profile_age = str(payload.profile_age) if payload.profile_age else row["profile_age"]
+    # The R99 fee is now annual, not once-off: stamp today's date the moment
+    # admin flips it from unpaid to paid, so both admin and the sitter can
+    # see when it was last paid. Unticking it clears the stamp.
+    was_paid = bool(row["registration_fee_paid"])
+    if payload.registration_fee_paid and not was_paid:
+        fee_paid_at = now_iso()[:10]
+    elif payload.registration_fee_paid:
+        fee_paid_at = row["fee_paid_at"] or now_iso()[:10]
+    else:
+        fee_paid_at = ""
+    verification_issued_date = (
+        payload.verification_issued_date if payload.verification_issued_date is not None
+        else row["verification_issued_date"]
+    )
     db.execute(
         """UPDATE babysitters SET id_doc_verified=?, proof_of_address_verified=?, reference_verified=?,
-        smile_id_verified=?, registration_fee_paid=?, verified=?, status=?, admin_notes=?, rating=?,
-        profile_gender=?, profile_race=?, profile_age=? WHERE id=?""",
+        smile_id_verified=?, registration_fee_paid=?, fee_paid_at=?, verified=?, status=?, admin_notes=?, rating=?,
+        profile_gender=?, profile_race=?, profile_age=?, verification_issued_date=? WHERE id=?""",
         (
             int(payload.id_doc_verified), int(payload.proof_of_address_verified),
             int(payload.reference_verified), int(payload.smile_id_verified),
-            int(payload.registration_fee_paid),
+            int(payload.registration_fee_paid), fee_paid_at,
             int(verified), status, payload.admin_notes or "", rating,
-            profile_gender, profile_race, profile_age, sitter_id,
+            profile_gender, profile_race, profile_age, verification_issued_date, sitter_id,
         ),
     )
     db.commit()
@@ -1256,10 +1365,22 @@ def list_public_babysitters(date: Optional[str] = None, start_time: Optional[str
     date/time/duration is supplied, each sitter is flagged available or not
     for that specific slot (checked against their marked-unavailable dates
     and any clashing accepted bookings) so families can see who's free
-    before picking a preference — admin still makes the final assignment."""
+    before picking a preference — admin still makes the final assignment.
+
+    Safety gate: a sitter whose annual police clearance / Child Protection
+    Register re-verification has lapsed (more than 12 months since it was
+    last accepted) is left out of this list even if the old `verified` flag
+    is still set to 1 in the database — families should never be shown a
+    sitter as verified once their clearance documents are out of date."""
     rows = [dict(r) for r in db.execute(
         "SELECT * FROM babysitters WHERE verified = 1 ORDER BY rating DESC, created_at ASC"
     ).fetchall()]
+    rows = [
+        r for r in rows
+        if compute_verification_status(r.get("verification_issued_date", ""), r.get("created_at", "")).get(
+            "verification_status"
+        ) != "overdue"
+    ]
     window = None
     if date and start_time and duration_hours:
         try:
@@ -1345,16 +1466,28 @@ class AdminFamilyVerifyRequest(BaseModel):
 
 @app.post("/api/admin/bookings/{booking_id}/verify")
 def admin_verify_family(booking_id: int, payload: AdminFamilyVerifyRequest, admin_ok: bool = Depends(require_admin)):
-    row = db.execute("SELECT id FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+    row = db.execute(
+        "SELECT id, registration_fee_paid, fee_paid_at FROM bookings WHERE id = ?", (booking_id,)
+    ).fetchone()
     if not row:
         raise HTTPException(404, "Booking not found.")
     verified = payload.family_id_verified and payload.family_proof_of_address_verified
+    # R99 is now an annual fee for families too, so stamp the date it was
+    # confirmed paid — admin can see when a repeat family last paid and
+    # judge whether a new booking falls inside the same 12-month window.
+    was_paid = bool(row["registration_fee_paid"])
+    if payload.registration_fee_paid and not was_paid:
+        fee_paid_at = now_iso()[:10]
+    elif payload.registration_fee_paid:
+        fee_paid_at = row["fee_paid_at"] or now_iso()[:10]
+    else:
+        fee_paid_at = ""
     db.execute(
         """UPDATE bookings SET family_id_verified=?, family_proof_of_address_verified=?,
-        registration_fee_paid=?, family_verified=?, admin_notes=? WHERE id=?""",
+        registration_fee_paid=?, fee_paid_at=?, family_verified=?, admin_notes=? WHERE id=?""",
         (
             int(payload.family_id_verified), int(payload.family_proof_of_address_verified),
-            int(payload.registration_fee_paid),
+            int(payload.registration_fee_paid), fee_paid_at,
             int(verified), payload.admin_notes or "", booking_id,
         ),
     )
@@ -1607,6 +1740,74 @@ def sitter_unavailability(payload: SitterAvailabilityRequest):
     db.execute("UPDATE babysitters SET unavailable_dates = ? WHERE id = ?", (new_val, sitter["id"]))
     db.commit()
     return {"unavailable_dates": sorted(dates)}
+
+
+class SitterRenewVerificationRequest(BaseModel):
+    email: str
+    access_code: str
+    police_clearance_data: str = Field(default="")
+    police_clearance_filename: str = Field(default="")
+    police_clearance_mimetype: str = Field(default="")
+    child_protection_clearance_data: str = Field(default="")
+    child_protection_clearance_filename: str = Field(default="")
+    child_protection_clearance_mimetype: str = Field(default="")
+    foreign_police_clearance_data: str = Field(default="")
+    foreign_police_clearance_filename: str = Field(default="")
+    foreign_police_clearance_mimetype: str = Field(default="")
+
+
+@app.post("/api/sitter/renew-verification")
+def sitter_renew_verification(payload: SitterRenewVerificationRequest):
+    """Annual self-service renewal: a sitter uploads a fresh police
+    clearance (+ Child Protection Register clearance, + foreign police
+    clearance if they registered with a passport) once their 12-month
+    verification window is up. Documents are stored and the sitter is put
+    back into pending_verification (dropped from the public list) and the
+    R99 fee is marked due again, exactly like a first-time registration —
+    admin must review the new documents and confirm payment before setting
+    a fresh verification_issued_date and re-verifying the sitter. This
+    deliberately does NOT reset the 12-month clock itself, so a sitter
+    can't self-certify their own renewal without an admin check."""
+    sitter = authenticate_sitter(payload.email, payload.access_code)
+    validate_document_fields(
+        payload.police_clearance_data, payload.police_clearance_mimetype, payload.police_clearance_filename,
+        "police clearance certificate",
+    )
+    validate_document_fields(
+        payload.child_protection_clearance_data, payload.child_protection_clearance_mimetype,
+        payload.child_protection_clearance_filename, "Child Protection Register (Part B) clearance letter",
+    )
+    if (sitter.get("id_type") or "sa_id") == "passport":
+        validate_document_fields(
+            payload.foreign_police_clearance_data, payload.foreign_police_clearance_mimetype,
+            payload.foreign_police_clearance_filename, "foreign police clearance certificate",
+        )
+    db.execute(
+        """UPDATE babysitters SET
+        police_clearance_data=?, police_clearance_filename=?, police_clearance_mimetype=?,
+        child_protection_clearance_data=?, child_protection_clearance_filename=?, child_protection_clearance_mimetype=?,
+        foreign_police_clearance_data=?, foreign_police_clearance_filename=?, foreign_police_clearance_mimetype=?,
+        registration_fee_paid=0, fee_paid_at='', verified=0, status='pending_verification'
+        WHERE id=?""",
+        (
+            payload.police_clearance_data, payload.police_clearance_filename, payload.police_clearance_mimetype,
+            payload.child_protection_clearance_data, payload.child_protection_clearance_filename,
+            payload.child_protection_clearance_mimetype,
+            payload.foreign_police_clearance_data, payload.foreign_police_clearance_filename,
+            payload.foreign_police_clearance_mimetype,
+            sitter["id"],
+        ),
+    )
+    db.commit()
+    updated = db.execute("SELECT * FROM babysitters WHERE id = ?", (sitter["id"],)).fetchone()
+    return {
+        "sitter": sitter_public(dict(updated)),
+        "message": (
+            "Your renewal documents were received. Please pay the R99 annual verification fee again via the "
+            "Paystack link on your dashboard — our team will review your documents and payment and confirm your "
+            "verified status."
+        ),
+    }
 
 
 if __name__ == "__main__":

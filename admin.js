@@ -88,6 +88,25 @@
     });
   });
 
+  var VERIFICATION_STATUS_LABELS = {
+    current: 'Verification current',
+    due_soon: 'Renewal due soon',
+    overdue: 'Renewal overdue',
+    unknown: 'Renewal date unknown',
+  };
+
+  function verificationBadge(s) {
+    var status = s.verification_status || 'unknown';
+    var label = VERIFICATION_STATUS_LABELS[status] || status;
+    if (s.verification_due_date) {
+      label += ' \u00b7 due ' + fmtDate(s.verification_due_date);
+      if (typeof s.verification_days_left === 'number' && status !== 'overdue') {
+        label += ' (' + s.verification_days_left + 'd)';
+      }
+    }
+    return '<span class="badge-renewal badge-renewal--' + status.replace(/_/g, '-') + '">' + escapeHtml(label) + '</span>';
+  }
+
   function docLink(docType, recordId, hasDoc, kind, label) {
     if (hasDoc) {
       return '<button type="button" class="btn btn--ghost btn--sm" data-view-doc="' + docType + '" data-kind="' + kind + '" data-record="' + recordId + '">View ' + escapeHtml(label) + '</button>';
@@ -186,7 +205,8 @@
       return (
         '<div class="dash-card" data-sitter-card="' + s.id + '">' +
         '<div class="dash-card__head">' + photoHtml + '<div><div class="dash-card__title">' + escapeHtml(s.full_name) + '</div>' +
-        '<div class="dash-card__meta">Applied ' + fmtDate(s.created_at) + ' &middot; ' + profileLine + '</div></div>' + verifiedBadge + '</div>' +
+        '<div class="dash-card__meta">Applied ' + fmtDate(s.created_at) + ' &middot; ' + profileLine + '</div></div>' +
+        '<div style="display:flex;flex-direction:column;gap:var(--space-2);align-items:flex-end;">' + verifiedBadge + verificationBadge(s) + '</div></div>' +
         '<dl class="dash-kv">' +
         '<div><dt>Email</dt><dd>' + escapeHtml(s.email) + '</dd></div>' +
         '<div><dt>Phone</dt><dd>' + escapeHtml(s.phone) + '</dd></div>' +
@@ -197,7 +217,11 @@
         '</dl>' +
         '<div class="dash-checklist">' + checklist + '</div>' +
         smileIdSummary(s) +
-        '<div class="dash-docs">' + docLink('id_document', s.id, s.has_id_document, 'sitters', 'ID / passport document') + docLink('proof_of_address', s.id, s.has_proof_of_address, 'sitters', 'Proof of address') + docLink('selfie', s.id, s.has_selfie, 'sitters', 'Selfie photo') + docLink('police_clearance', s.id, s.has_police_clearance, 'sitters', 'Police clearance certificate') + '</div>' +
+        '<div class="dash-docs">' + docLink('id_document', s.id, s.has_id_document, 'sitters', 'ID / passport document') + docLink('proof_of_address', s.id, s.has_proof_of_address, 'sitters', 'Proof of address') + docLink('selfie', s.id, s.has_selfie, 'sitters', 'Selfie photo') + docLink('police_clearance', s.id, s.has_police_clearance, 'sitters', 'Police clearance certificate') + docLink('child_protection_clearance', s.id, s.has_child_protection_clearance, 'sitters', 'Child Protection Register clearance') + (s.id_type === 'passport' ? docLink('foreign_police_clearance', s.id, s.has_foreign_police_clearance, 'sitters', 'Foreign police clearance') : '') + '</div>' +
+        '<div class="field-grid">' +
+        '<div class="field"><label for="verif-date-' + s.id + '">Verification documents issued/accepted on</label><input type="date" id="verif-date-' + s.id + '" data-verification-issued="' + s.id + '" value="' + escapeHtml(s.verification_issued_date || '') + '" /></div>' +
+        '<div class="field"><label>R99 fee paid on</label><span class="field__hint" style="display:block;">' + (s.fee_paid_at ? fmtDate(s.fee_paid_at) : '\u2013 not recorded yet') + '</span></div>' +
+        '</div>' +
         '<div class="field-grid field-grid--sitter-profile">' +
         '<div class="field"><label for="rating-' + s.id + '">Star rating (0&ndash;5)</label><input type="number" id="rating-' + s.id + '" data-rating="' + s.id + '" min="0" max="5" step="0.1" value="' + (s.rating || 0) + '" /></div>' +
         '<div class="field"><label for="gender-' + s.id + '">Gender</label><select id="gender-' + s.id + '" data-profile-gender="' + s.id + '">' +
@@ -253,6 +277,8 @@
     if (raceEl && raceEl.value !== '') payload.profile_race = raceEl.value;
     var ageEl = card.querySelector('[data-profile-age="' + id + '"]');
     if (ageEl && ageEl.value !== '') payload.profile_age = parseInt(ageEl.value, 10);
+    var verifDateEl = card.querySelector('[data-verification-issued="' + id + '"]');
+    if (verifDateEl && verifDateEl.value !== '') payload.verification_issued_date = verifDateEl.value;
     btn.disabled = true;
     btn.textContent = 'Saving\u2026';
     try {
@@ -343,6 +369,7 @@
         instructionsLine +
         precautionsLine +
         '<div class="dash-checklist">' + checklist + '</div>' +
+        '<p class="dash-card__meta" style="margin-bottom: var(--space-2);"><strong>R99 fee paid on:</strong> ' + (b.fee_paid_at ? fmtDate(b.fee_paid_at) : '\u2013 not recorded yet') + '</p>' +
         smileIdSummary(b) +
         '<div class="dash-docs">' + docLink('id_document', b.id, b.has_id_document, 'bookings', 'ID / passport document') + docLink('proof_of_address', b.id, b.has_proof_of_address, 'bookings', 'Proof of address') + docLink('selfie', b.id, b.has_selfie, 'bookings', 'Selfie photo') + '</div>' +
         '<div class="dash-card__actions">' +

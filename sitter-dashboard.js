@@ -17,6 +17,18 @@
   var calTitle = document.getElementById('mini-cal-title');
   var calPrevBtn = document.getElementById('mini-cal-prev');
   var calNextBtn = document.getElementById('mini-cal-next');
+  var verifStatusBox = document.getElementById('sitter-verification-status');
+  var renewalBox = document.getElementById('sitter-renewal-box');
+  var renewalToggle = document.getElementById('sitter-renewal-toggle');
+  var renewalForm = document.getElementById('sitter-renewal-form');
+  var renewalForeignField = document.getElementById('sitter-renewal-foreign-field');
+  var renewalSubmitBtn = document.getElementById('sitter-renewal-submit');
+  var renewalError = document.getElementById('sitter-renewal-error');
+  var renewalErrorText = document.getElementById('sitter-renewal-error-text');
+  var renewalSuccess = document.getElementById('sitter-renewal-success');
+  var renewalPayLink = document.getElementById('sitter-renewal-pay-link');
+  var MAX_DOCUMENT_BYTES = 6 * 1024 * 1024;
+  var ALLOWED_DOCUMENT_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
 
   var creds = null; // { email, access_code }
   var lastSitter = null;
@@ -83,9 +95,115 @@
       whoEl.textContent = 'Signed in as ' + lastSitter.full_name;
       renderBookings(lastBookings);
       renderCalendar();
+      renderVerificationStatus(lastSitter);
     } catch (err) {
       bookingsList.innerHTML = '<div class="dash-empty">Could not load bookings: ' + escapeHtml(err.message) + '</div>';
     }
+  }
+
+  var VERIFICATION_STATUS_LABELS = {
+    current: 'Your verification is current.',
+    due_soon: 'Your annual renewal is coming up soon.',
+    overdue: 'Your verification has lapsed \u2014 you will not appear to families until you renew.',
+    unknown: 'We do not have a renewal date on file yet.',
+  };
+
+  function renderVerificationStatus(sitter) {
+    if (!verifStatusBox || !sitter) return;
+    var status = sitter.verification_status || 'unknown';
+    var label = VERIFICATION_STATUS_LABELS[status] || status;
+    var badgeClass = 'badge-renewal badge-renewal--' + status.replace(/_/g, '-');
+    var badgeLabel = status === 'overdue' ? 'Renewal overdue' : (status === 'due_soon' ? 'Renewal due soon' : (status === 'current' ? 'Current' : 'Unknown'));
+    var html = '<span class="' + badgeClass + '">' + escapeHtml(badgeLabel) + '</span>';
+    html += '<p class="dash-card__meta" style="margin-top: var(--space-3);">' + escapeHtml(label);
+    if (sitter.verification_due_date) {
+      html += ' Documents are due by <strong>' + fmtDate(sitter.verification_due_date) + '</strong>';
+      if (typeof sitter.verification_days_left === 'number' && status !== 'overdue') {
+        html += ' (' + sitter.verification_days_left + ' day' + (sitter.verification_days_left === 1 ? '' : 's') + ' left)';
+      }
+      html += '.';
+    }
+    html += '</p>';
+    html += '<p class="dash-card__meta">R99 annual fee: ' + (sitter.registration_fee_paid ? ('paid on ' + fmtDate(sitter.fee_paid_at)) : 'not yet confirmed as paid') + '.</p>';
+    verifStatusBox.innerHTML = html;
+    if (renewalBox) renewalBox.hidden = false;
+    if (renewalForeignField) renewalForeignField.hidden = sitter.id_type !== 'passport';
+    var renewForeignInput = document.getElementById('renew_foreign_police_clearance_document');
+    if (renewForeignInput) renewForeignInput.required = sitter.id_type === 'passport';
+  }
+
+  if (renewalToggle && renewalForm) {
+    renewalToggle.addEventListener('click', function () {
+      renewalForm.hidden = !renewalForm.hidden;
+      renewalToggle.textContent = renewalForm.hidden ? 'Submit renewal documents' : 'Hide renewal form';
+    });
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result || '';
+        var commaIndex = result.indexOf(',');
+        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+      };
+      reader.onerror = function () { reject(new Error('Could not read the file. Please try again.')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  var RENEWAL_DOCUMENT_LABELS = {
+    police_clearance: 'police clearance certificate',
+    child_protection_clearance: 'Child Protection Register (Part B) clearance letter',
+    foreign_police_clearance: 'foreign police clearance certificate',
+  };
+
+  async function buildRenewalDocumentFields(prefix, input) {
+    var label = RENEWAL_DOCUMENT_LABELS[prefix] || prefix;
+    var file = input && input.files && input.files[0];
+    if (!file) throw new Error('Please upload your ' + label + '.');
+    if (ALLOWED_DOCUMENT_TYPES.indexOf(file.type) === -1) {
+      throw new Error('Please upload your ' + label + ' as a JPG, PNG, or PDF file.');
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      throw new Error('Your ' + label + ' file is too large. Please keep it under 6MB.');
+    }
+    var data = await readFileAsBase64(file);
+    var fields = {};
+    fields[prefix + '_data'] = data;
+    fields[prefix + '_filename'] = file.name;
+    fields[prefix + '_mimetype'] = file.type;
+    return fields;
+  }
+
+  if (renewalForm) {
+    renewalForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (renewalError) renewalError.hidden = true;
+      if (renewalSuccess) renewalSuccess.hidden = true;
+      renewalSubmitBtn.disabled = true;
+      renewalSubmitBtn.textContent = 'Submitting\u2026';
+      try {
+        var policeFields = await buildRenewalDocumentFields('police_clearance', document.getElementById('renew_police_clearance_document'));
+        var cprFields = await buildRenewalDocumentFields('child_protection_clearance', document.getElementById('renew_child_protection_clearance_document'));
+        var foreignFields = (lastSitter && lastSitter.id_type === 'passport')
+          ? await buildRenewalDocumentFields('foreign_police_clearance', document.getElementById('renew_foreign_police_clearance_document'))
+          : {};
+        var payload = Object.assign({}, creds, policeFields, cprFields, foreignFields);
+        var result = await api.post('/api/sitter/renew-verification', payload);
+        lastSitter = result.sitter || lastSitter;
+        renderVerificationStatus(lastSitter);
+        if (renewalSuccess) renewalSuccess.hidden = false;
+        if (renewalPayLink) renewalPayLink.hidden = false;
+        renewalForm.reset();
+      } catch (err) {
+        if (renewalErrorText) renewalErrorText.textContent = err.message || 'Something went wrong. Please try again.';
+        if (renewalError) renewalError.hidden = false;
+      } finally {
+        renewalSubmitBtn.disabled = false;
+        renewalSubmitBtn.textContent = 'Submit renewal documents';
+      }
+    });
   }
 
   function renderBookings(bookings) {

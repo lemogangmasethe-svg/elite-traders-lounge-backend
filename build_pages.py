@@ -400,18 +400,32 @@ REGISTER_BODY = '''
             <div class="field">
               <label for="police_clearance_document">Police clearance certificate <span class="field__hint">(required)</span></label>
               <input type="file" id="police_clearance_document" name="police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
-              <span class="field__hint">A valid SAPS Police Clearance Certificate &middot; JPG, PNG, or PDF, max 6MB. Don't have one yet? You can apply at any police station for a once-off fee of R190 &mdash; take your ID/passport, get SAPS 91(a) fingerprints taken, and pay at the station or by EFT; see the <a href="https://www.saps.gov.za/services/applying_clearence_certificate.php" target="_blank" rel="noopener">official SAPS guidance</a>. It typically takes a few weeks to be issued, so we recommend applying early.</span>
+              <span class="field__hint">A valid SAPS Police Clearance Certificate &middot; JPG, PNG, or PDF, max 6MB. Don't have one yet? You can apply at any police station for a once-off fee of R190 &mdash; take your ID/passport, get SAPS 91(a) fingerprints taken, and pay at the station or by EFT; see the <a href="https://www.saps.gov.za/services/applying_clearence_certificate.php" target="_blank" rel="noopener">official SAPS guidance</a>. It typically takes a few weeks to be issued, so we recommend applying early. This is not a once-off check &mdash; to remain verified, you'll need to submit a fresh clearance certificate every 12 months.</span>
               <span class="file-status" id="police_clearance_document-status"></span>
+            </div>
+            <div class="field">
+              <label for="child_protection_clearance_document">Child Protection Register (Part B) clearance letter <span class="field__hint">(required)</span></label>
+              <input type="file" id="child_protection_clearance_document" name="child_protection_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+              <span class="field__hint">Proof you are not listed on Part B of South Africa's National Child Protection Register, which bars unsuitable people from working with children &middot; JPG, PNG, or PDF, max 6MB. Apply for a free Form 30 individual enquiry by emailing your ID copy to <a href="mailto:CPRenquiries@dsd.gov.za">CPRenquiries@dsd.gov.za</a> (Department of Social Development) &mdash; it typically takes a few weeks, so apply early. Like the police clearance above, this must be renewed every 12 months to keep your verified status.</span>
+              <span class="file-status" id="child_protection_clearance_document-status"></span>
+            </div>
+            <div class="field-grid" data-id-fields="passport" hidden>
+              <div class="field">
+                <label for="foreign_police_clearance_document">Foreign police clearance certificate <span class="field__hint">(required for non-SA sitters)</span></label>
+                <input type="file" id="foreign_police_clearance_document" name="foreign_police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" />
+                <span class="field__hint">South African immigration law requires foreign nationals to also provide a police clearance certificate from any country they lived in for 12+ months as an adult during the last 5 years, issued within the last 6 months &middot; JPG, PNG, or PDF, max 6MB. Contact that country's police or diplomatic mission for the correct process. This also needs renewing every 12 months.</span>
+                <span class="file-status" id="foreign_police_clearance_document-status"></span>
+              </div>
             </div>
             <div class="checkbox-field">
               <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
-              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) and to Elite Traders Lounge reviewing my police clearance certificate as part of registration.</label>
+              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) and to Elite Traders Lounge reviewing my police clearance certificate, Child Protection Register clearance, and (if applicable) foreign police clearance as part of registration and each annual renewal.</label>
             </div>
           </div>
 
           <div class="form-section form-section--final">
-            <div class="form-section__title">Once-off registration &amp; verification fee &middot; R99</div>
-            <div class="form-section__hint">A once-off R99 fee covers your identity and document verification. It is completely separate from the 10&ndash;15% booking commission described above, and is the same R99 fee families pay. Once your credentials are verified, you will not be asked to pay this again.</div>
+            <div class="form-section__title">Annual registration &amp; verification fee &middot; R99</div>
+            <div class="form-section__hint">An R99 fee covers your identity and document verification. It is completely separate from the 10&ndash;15% booking commission described above, and is the same R99 fee families pay. Because your police clearance and Child Protection Register checks must be renewed every 12 months to keep your safety verification current, this fee is charged annually rather than once &mdash; you'll pay it again each year alongside your renewal documents, from your sitter dashboard.</div>
             <a href="https://paystack.shop/pay/-c63v2905q" target="_blank" rel="noopener" class="btn btn--primary">Pay R99 registration fee via Paystack</a>
             <span class="field__hint" style="display:block;margin-top:var(--space-3);">Use the same email address you entered above as your payment reference so our team can match your payment. Our team confirms receipt on the Paystack account and marks your registration fee as paid &mdash; you don't need to upload proof.</span>
           </div>
@@ -707,8 +721,8 @@ BOOK_BODY = '''
           </div>
 
           <div class="form-section form-section--final">
-            <div class="form-section__title">Once-off registration &amp; verification fee &middot; R99</div>
-            <div class="form-section__hint">A once-off R99 fee covers your identity and document verification. It is completely separate from the booking commission shown in your quote above, and is the same R99 fee babysitters pay. Once your credentials are verified, you will not be asked to pay this again.</div>
+            <div class="form-section__title">Annual registration &amp; verification fee &middot; R99</div>
+            <div class="form-section__hint">An R99 fee covers your identity and document verification. It is completely separate from the booking commission shown in your quote above, and is the same R99 fee babysitters pay. This fee is charged annually, once every 12 months, to keep your identity details current — if you've paid within the last year, our team will confirm this and you won't be asked to pay again until it's due.</div>
             <a href="https://paystack.shop/pay/-c63v2905q" target="_blank" rel="noopener" class="btn btn--primary">Pay R99 registration fee via Paystack</a>
             <span class="field__hint" style="display:block;margin-top:var(--space-3);">Use the same email address you entered above as your payment reference so our team can match your payment. Our team confirms receipt on the Paystack account and marks your registration fee as paid &mdash; you don't need to upload proof.</span>
           </div>
@@ -1070,6 +1084,9 @@ TERMS_BODY = '''
           <li><strong>Foreign nationals</strong> may register as freelance Babysitters using a valid passport, provided they hold a valid work permit or other legal authorisation to perform paid work in South Africa under the Immigration Act 13 of 2002. Elite Traders Lounge does not place or pay any Babysitter who cannot demonstrate the legal right to work in South Africa, and reserves the right to request the physical work permit document at any time.</li>
           <li>All Families and Babysitters must complete identity verification through <strong>Smile ID</strong> (document authentication and facial liveness check) before a Babysitter is placed in, or a Family may book care at, a household. Bookings and placements are provisional until Smile ID verification is complete.</li>
           <li>Providing false, forged, or expired identity documents is grounds for immediate account suspension and may be reported to the relevant authorities.</li>
+          <li><strong>Every Babysitter must hold a valid SAPS Police Clearance Certificate and a Child Protection Register (Part B) clearance letter</strong> confirming they are not listed as unsuitable to work with children, submitted at registration and reviewed by Elite Traders Lounge before verified status is granted.</li>
+          <li><strong>Foreign national Babysitters must additionally provide a police clearance certificate from any country they resided in for 12 or more months as an adult within the preceding 5 years</strong>, in line with the definition used under the Immigration Act 13 of 2002, each dated within 6 months of submission.</li>
+          <li><strong>Annual re-verification.</strong> To remain eligible for placement, every Babysitter &mdash; South African or foreign national &mdash; must renew their Police Clearance Certificate and Child Protection Register (Part B) clearance every 12 months from the date the current documents were accepted, submitted via the Babysitter's dashboard. Elite Traders Lounge may suspend or withdraw a Babysitter's verified status, and remove them from public search results, if renewal documents are not submitted by the due date.</li>
         </ul>
       </div>
 
@@ -1112,7 +1129,7 @@ TERMS_BODY = '''
           <li><strong>Elite Traders Lounge does not hold, custody, or accept responsibility for any wallet balance.</strong> Funds in transit are held and disbursed by Paystack as the payment processor, subject to Paystack's own terms of service; Elite Traders Lounge's role is limited to configuring the commission split and facilitating bookings.</li>
           <li>Commission rates (10%&ndash;15% depending on level and booking type, per Appendix C) are unchanged and are deducted automatically as part of the Paystack split &mdash; no additional platform or service fee is charged on top of this commission.</li>
           <li>Refunds for eligible cancellations (see <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>) are issued via Paystack back to the Family's original payment method.</li>
-          <li><strong>Once-off registration &amp; verification fee &mdash; R99.</strong> Every Babysitter and every Family pays a single, once-off R99 fee to cover identity and document verification, payable via the Paystack payment link provided on the registration and booking forms. This fee is completely separate from, and in addition to, the booking commission described above, and is not refundable once verification has begun. It is only ever charged once per person &mdash; you will not be asked to pay it again on future bookings.</li>
+          <li><strong>Annual registration &amp; verification fee &mdash; R99.</strong> Every Babysitter and every Family pays an R99 fee to cover identity and document verification, payable via the Paystack payment link provided on the registration and booking forms. This fee is completely separate from, and in addition to, the booking commission described above, and is not refundable once verification has begun. Because Babysitters must renew their Police Clearance Certificate and Child Protection Register clearance every 12 months, and Families' identity details are re-confirmed on the same cycle, this fee is charged annually rather than once &mdash; it is due again 12 months after it was last confirmed paid.</li>
         </ul>
       </div>
 
@@ -1405,6 +1422,41 @@ SITTER_BODY = '''
         <div class="dash-toolbar">
           <span class="dash-toolbar__who" id="sitter-who">Signed in</span>
           <button type="button" class="btn btn--ghost btn--sm" id="sitter-logout-btn">Sign out</button>
+        </div>
+
+        <div class="dash-card" id="sitter-verification-panel" style="margin-bottom: var(--space-6);">
+          <h2 style="font-size: var(--text-lg); margin-bottom: var(--space-3);">Verification &amp; annual fee</h2>
+          <div id="sitter-verification-status">
+            <div class="dash-empty">Loading verification status&hellip;</div>
+          </div>
+          <div id="sitter-renewal-box" hidden style="margin-top: var(--space-5);">
+            <button type="button" class="btn btn--ghost btn--sm" id="sitter-renewal-toggle">Submit renewal documents</button>
+            <form id="sitter-renewal-form" novalidate hidden style="margin-top: var(--space-4);">
+              <div class="field">
+                <label for="renew_police_clearance_document">New police clearance certificate <span class="field__hint">(required)</span></label>
+                <input type="file" id="renew_police_clearance_document" name="renew_police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+                <span class="file-status" id="renew_police_clearance_document-status"></span>
+              </div>
+              <div class="field">
+                <label for="renew_child_protection_clearance_document">New Child Protection Register (Part B) clearance letter <span class="field__hint">(required)</span></label>
+                <input type="file" id="renew_child_protection_clearance_document" name="renew_child_protection_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+                <span class="file-status" id="renew_child_protection_clearance_document-status"></span>
+              </div>
+              <div class="field" id="sitter-renewal-foreign-field" hidden>
+                <label for="renew_foreign_police_clearance_document">New foreign police clearance certificate <span class="field__hint">(required for non-SA sitters)</span></label>
+                <input type="file" id="renew_foreign_police_clearance_document" name="renew_foreign_police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" />
+                <span class="file-status" id="renew_foreign_police_clearance_document-status"></span>
+              </div>
+              <div class="alert alert--error" id="sitter-renewal-error" hidden style="margin-top: var(--space-3);">
+                <span id="sitter-renewal-error-text"></span>
+              </div>
+              <div class="alert alert--info" id="sitter-renewal-success" hidden style="margin-top: var(--space-3);">
+                <span>Thanks &mdash; your renewal documents have been received. Our team will review them and confirm your verified status. You'll also need to pay the R99 annual fee again via the Paystack link below once you submit.</span>
+              </div>
+              <button type="submit" class="btn btn--primary" id="sitter-renewal-submit" style="margin-top: var(--space-3);">Submit renewal documents</button>
+              <a href="https://paystack.shop/pay/-c63v2905q" target="_blank" rel="noopener" class="btn btn--ghost" id="sitter-renewal-pay-link" hidden style="margin-top: var(--space-3);">Pay R99 annual fee via Paystack</a>
+            </form>
+          </div>
         </div>
 
         <div class="mini-cal" id="sitter-calendar">

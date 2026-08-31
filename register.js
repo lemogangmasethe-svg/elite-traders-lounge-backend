@@ -60,12 +60,16 @@
   var idDocumentInput = setupFileField('id_document');
   var proofOfAddressDocInput = setupFileField('proof_of_address_document');
   var policeClearanceInput = setupFileField('police_clearance_document');
+  var childProtectionClearanceInput = setupFileField('child_protection_clearance_document');
+  var foreignPoliceClearanceInput = setupFileField('foreign_police_clearance_document');
   var selfieCapture = window.ETLSelfieCapture && window.ETLSelfieCapture.attach('selfie');
 
   var DOCUMENT_LABELS = {
     id_document: 'ID/passport document',
     proof_of_address: 'proof of address document',
     police_clearance: 'police clearance certificate',
+    child_protection_clearance: 'Child Protection Register (Part B) clearance letter',
+    foreign_police_clearance: 'foreign police clearance certificate',
   };
 
   async function buildDocumentFields(prefix, input) {
@@ -97,7 +101,7 @@
       group.hidden = !isActive;
       group.querySelectorAll('input').forEach(function (input) {
         if (isActive) {
-          if (input.id === 'id_number' || input.id === 'passport_number' || input.id === 'work_permit_number' || input.id === 'work_permit_expiry') {
+          if (input.id === 'id_number' || input.id === 'passport_number' || input.id === 'work_permit_number' || input.id === 'work_permit_expiry' || input.id === 'foreign_police_clearance_document') {
             input.required = true;
           }
         } else {
@@ -136,6 +140,10 @@
       var idDocFields = await buildDocumentFields('id_document', idDocumentInput);
       var proofFields = await buildDocumentFields('proof_of_address', proofOfAddressDocInput);
       var policeClearanceFields = await buildDocumentFields('police_clearance', policeClearanceInput);
+      var childProtectionClearanceFields = await buildDocumentFields('child_protection_clearance', childProtectionClearanceInput);
+      var foreignPoliceClearanceFields = idType === 'passport'
+        ? await buildDocumentFields('foreign_police_clearance', foreignPoliceClearanceInput)
+        : {};
 
       var payload = Object.assign({
         full_name: form.full_name.value.trim(),
@@ -165,7 +173,7 @@
         profile_age: parseInt(form.profile_age.value, 10) || 0,
         paystack_email: form.paystack_email.value.trim(),
         agreed_terms: form.agreed_terms.checked,
-      }, idDocFields, proofFields, policeClearanceFields, selfieFields);
+      }, idDocFields, proofFields, policeClearanceFields, childProtectionClearanceFields, foreignPoliceClearanceFields, selfieFields);
 
       submitBtn.textContent = 'Submitting...';
       var result = await window.ETL_API.post('/api/register-sitter', payload);
@@ -190,7 +198,7 @@
       form.reset();
       syncIdTypeFields();
       if (selfieCapture) selfieCapture.reset();
-      ['id_document-status', 'proof_of_address_document-status', 'police_clearance_document-status'].forEach(function (id) {
+      ['id_document-status', 'proof_of_address_document-status', 'police_clearance_document-status', 'child_protection_clearance_document-status', 'foreign_police_clearance_document-status'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) { el.textContent = ''; el.className = 'file-status'; }
       });

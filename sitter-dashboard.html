@@ -104,6 +104,41 @@
           <button type="button" class="btn btn--ghost btn--sm" id="sitter-logout-btn">Sign out</button>
         </div>
 
+        <div class="dash-card" id="sitter-verification-panel" style="margin-bottom: var(--space-6);">
+          <h2 style="font-size: var(--text-lg); margin-bottom: var(--space-3);">Verification &amp; annual fee</h2>
+          <div id="sitter-verification-status">
+            <div class="dash-empty">Loading verification status&hellip;</div>
+          </div>
+          <div id="sitter-renewal-box" hidden style="margin-top: var(--space-5);">
+            <button type="button" class="btn btn--ghost btn--sm" id="sitter-renewal-toggle">Submit renewal documents</button>
+            <form id="sitter-renewal-form" novalidate hidden style="margin-top: var(--space-4);">
+              <div class="field">
+                <label for="renew_police_clearance_document">New police clearance certificate <span class="field__hint">(required)</span></label>
+                <input type="file" id="renew_police_clearance_document" name="renew_police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+                <span class="file-status" id="renew_police_clearance_document-status"></span>
+              </div>
+              <div class="field">
+                <label for="renew_child_protection_clearance_document">New Child Protection Register (Part B) clearance letter <span class="field__hint">(required)</span></label>
+                <input type="file" id="renew_child_protection_clearance_document" name="renew_child_protection_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+                <span class="file-status" id="renew_child_protection_clearance_document-status"></span>
+              </div>
+              <div class="field" id="sitter-renewal-foreign-field" hidden>
+                <label for="renew_foreign_police_clearance_document">New foreign police clearance certificate <span class="field__hint">(required for non-SA sitters)</span></label>
+                <input type="file" id="renew_foreign_police_clearance_document" name="renew_foreign_police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" />
+                <span class="file-status" id="renew_foreign_police_clearance_document-status"></span>
+              </div>
+              <div class="alert alert--error" id="sitter-renewal-error" hidden style="margin-top: var(--space-3);">
+                <span id="sitter-renewal-error-text"></span>
+              </div>
+              <div class="alert alert--info" id="sitter-renewal-success" hidden style="margin-top: var(--space-3);">
+                <span>Thanks &mdash; your renewal documents have been received. Our team will review them and confirm your verified status. You'll also need to pay the R99 annual fee again via the Paystack link below once you submit.</span>
+              </div>
+              <button type="submit" class="btn btn--primary" id="sitter-renewal-submit" style="margin-top: var(--space-3);">Submit renewal documents</button>
+              <a href="https://paystack.shop/pay/-c63v2905q" target="_blank" rel="noopener" class="btn btn--ghost" id="sitter-renewal-pay-link" hidden style="margin-top: var(--space-3);">Pay R99 annual fee via Paystack</a>
+            </form>
+          </div>
+        </div>
+
         <div class="mini-cal" id="sitter-calendar">
           <div class="mini-cal__head">
             <button type="button" class="mini-cal__nav" id="mini-cal-prev" aria-label="Previous month">&larr;</button>

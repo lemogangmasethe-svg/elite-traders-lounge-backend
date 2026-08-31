@@ -46,7 +46,6 @@
     try {
       await api.postAuth('/api/admin/login', { password: pwd }, {});
       adminPassword = pwd;
-      sessionStorage.setItem('etl_admin_pwd', pwd);
       loginError.hidden = true;
       loginBox.hidden = true;
       panel.hidden = false;
@@ -67,18 +66,10 @@
 
   logoutBtn.addEventListener('click', function () {
     adminPassword = null;
-    sessionStorage.removeItem('etl_admin_pwd');
     panel.hidden = true;
     loginBox.hidden = false;
     passwordInput.value = '';
   });
-
-  // Restore session if password already verified this tab session
-  var saved = sessionStorage.getItem('etl_admin_pwd');
-  if (saved) {
-    passwordInput.value = saved;
-    tryLogin();
-  }
 
   // --- Tabs ---
   tabs.forEach(function (tab) {
@@ -91,6 +82,42 @@
       });
     });
   });
+
+  function docLink(docType, recordId, hasDoc, kind, label) {
+    if (hasDoc) {
+      return '<button type="button" class="btn btn--ghost btn--sm" data-view-doc="' + docType + '" data-kind="' + kind + '" data-record="' + recordId + '">View ' + escapeHtml(label) + '</button>';
+    }
+    return '<span class="dash-docs__missing">' + escapeHtml(label) + ': not uploaded yet</span>';
+  }
+
+  async function openDocument(kind, recordId, docType) {
+    var path = '/api/admin/' + kind + '/' + recordId + '/document/' + docType;
+    var blob = await api.getBlobAuth(path, headers());
+    var url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+
+  function wireDocumentViewer(container) {
+    container.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-view-doc]');
+      if (!btn) return;
+      var docType = btn.getAttribute('data-view-doc');
+      var kind = btn.getAttribute('data-kind');
+      var recordId = btn.getAttribute('data-record');
+      var original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Opening\u2026';
+      openDocument(kind, recordId, docType).catch(function (err) {
+        alert('Could not open document: ' + err.message);
+      }).finally(function () {
+        btn.disabled = false;
+        btn.textContent = original;
+      });
+    });
+  }
+  wireDocumentViewer(sittersList);
+  wireDocumentViewer(bookingsList);
 
   // --- Sitters ---
   var DOC_FIELDS = [
@@ -137,6 +164,7 @@
         '<div><dt>Reference</dt><dd>' + escapeHtml(s.reference_name || '\u2013') + '</dd></div>' +
         '</dl>' +
         '<div class="dash-checklist">' + checklist + '</div>' +
+        '<div class="dash-docs">' + docLink('id_document', s.id, s.has_id_document, 'sitters', 'ID / passport document') + docLink('proof_of_address', s.id, s.has_proof_of_address, 'sitters', 'Proof of address') + '</div>' +
         '<div class="dash-notes"><textarea data-notes="' + s.id + '" placeholder="Admin notes (e.g. how documents were checked)">' + escapeHtml(s.admin_notes || '') + '</textarea></div>' +
         '<div class="dash-card__actions">' +
         '<button type="button" class="btn btn--primary btn--sm" data-save-sitter="' + s.id + '">Save verification</button>' +
@@ -224,6 +252,7 @@
         '<div><dt>Children</dt><dd>' + escapeHtml(b.children_count) + '</dd></div>' +
         '</dl>' +
         '<div class="dash-checklist">' + checklist + '</div>' +
+        '<div class="dash-docs">' + docLink('id_document', b.id, b.has_id_document, 'bookings', 'ID / passport document') + docLink('proof_of_address', b.id, b.has_proof_of_address, 'bookings', 'Proof of address') + '</div>' +
         '<div class="dash-card__actions">' +
         '<select data-sitter-select="' + b.id + '">' + sitterOptions(b.assigned_sitter_id) + '</select>' +
         '<button type="button" class="btn btn--secondary btn--sm" data-assign="' + b.id + '">Assign</button>' +

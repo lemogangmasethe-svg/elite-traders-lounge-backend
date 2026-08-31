@@ -7,6 +7,7 @@ confirmation system used to track worked hours for every booking.
 
 Runs on port 8000 inside the sandbox.
 """
+import base64
 import os
 import random
 import re
@@ -19,7 +20,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -141,7 +142,32 @@ MIGRATION_COLUMNS = [
     ("bookings", "family_id_verified", "INTEGER NOT NULL DEFAULT 0"),
     ("bookings", "family_proof_of_address_verified", "INTEGER NOT NULL DEFAULT 0"),
     ("bookings", "admin_notes", "TEXT NOT NULL DEFAULT ''"),
+    # Real document uploads (ID document + proof of address) so an admin can
+    # view the actual file instead of only relying on a manual attestation.
+    # Stored as base64 text — works identically on SQLite and Postgres
+    # without needing separate cloud file storage.
+    ("babysitters", "id_document_data", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "id_document_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "id_document_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "proof_of_address_data", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "proof_of_address_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "proof_of_address_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "id_document_data", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "id_document_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "id_document_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "proof_of_address_data", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "proof_of_address_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "proof_of_address_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    # Parity with babysitters.smile_id_verified — lets admin mark a family's
+    # Smile ID step as complete too, once that integration is wired up.
+    ("bookings", "family_smile_id_verified", "INTEGER NOT NULL DEFAULT 0"),
 ]
+
+# Document upload constants — used by /api/sitter/documents and
+# /api/family/documents. Kept small since files are stored as base64 text.
+DOCUMENT_KINDS = ("id_document", "proof_of_address")
+MAX_DOCUMENT_BYTES = 6 * 1024 * 1024  # 6MB
+ALLOWED_DOCUMENT_MIMETYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"}
 
 
 def run_migrations(conn):
@@ -286,7 +312,27 @@ def sitter_public(row: dict) -> dict:
         "verified": bool(row["verified"]),
         "experience_level": row["experience_level"],
         "unavailable_dates": sorted(d for d in (row.get("unavailable_dates") or "").split(",") if d),
+        "has_id_document": bool(row.get("id_document_data")),
+        "has_proof_of_address": bool(row.get("proof_of_address_data")),
     }
+
+
+def validate_document_fields(data_b64: str, mimetype: str, filename: str, label: str) -> None:
+    """Validate a base64-encoded document upload sent inline with a
+    registration/booking payload. Raises ValueError with a friendly message."""
+    if not (data_b64 or "").strip():
+        raise ValueError(f"please upload a copy of your {label}")
+    mt = (mimetype or "").lower()
+    if mt not in ALLOWED_DOCUMENT_MIMETYPES:
+        raise ValueError(f"your {label} must be a JPG, PNG, or PDF file")
+    try:
+        raw = base64.b64decode(data_b64, validate=True)
+    except Exception:
+        raise ValueError(f"your {label} file could not be read — please try uploading it again")
+    if len(raw) > MAX_DOCUMENT_BYTES:
+        raise ValueError(f"your {label} file is too large — please upload one under 6MB")
+    if not (filename or "").strip():
+        raise ValueError(f"your {label} file is missing a filename — please try uploading it again")
 
 
 def booking_window(date_str: str, time_str: str, duration_hours: float):
@@ -368,6 +414,12 @@ class SitterRegistration(BaseModel):
     account_holder: Optional[str] = ""
     account_number: Optional[str] = ""
     agreed_terms: bool
+    id_document_data: str = Field(default="")
+    id_document_filename: str = Field(default="")
+    id_document_mimetype: str = Field(default="")
+    proof_of_address_data: str = Field(default="")
+    proof_of_address_filename: str = Field(default="")
+    proof_of_address_mimetype: str = Field(default="")
 
     _validate_email = field_validator("email")(validate_email)
     _validate_reference_email = field_validator("reference_email")(validate_email)
@@ -432,6 +484,12 @@ class SitterRegistration(BaseModel):
             raise ValueError("you must accept the babysitter contract terms to register")
         return v
 
+    @model_validator(mode="after")
+    def check_documents(self):
+        validate_document_fields(self.id_document_data, self.id_document_mimetype, self.id_document_filename, "ID document")
+        validate_document_fields(self.proof_of_address_data, self.proof_of_address_mimetype, self.proof_of_address_filename, "proof of address")
+        return self
+
 
 class BookingRequest(BaseModel):
     parent_name: str = Field(min_length=2, max_length=120)
@@ -458,6 +516,12 @@ class BookingRequest(BaseModel):
     duration_hours: float = Field(gt=0)
     special_instructions: Optional[str] = ""
     agreed_terms: bool
+    id_document_data: str = Field(default="")
+    id_document_filename: str = Field(default="")
+    id_document_mimetype: str = Field(default="")
+    proof_of_address_data: str = Field(default="")
+    proof_of_address_filename: str = Field(default="")
+    proof_of_address_mimetype: str = Field(default="")
 
     @field_validator("level")
     @classmethod
@@ -514,6 +578,12 @@ class BookingRequest(BaseModel):
         if not v:
             raise ValueError("you must accept the booking contract terms to submit a booking")
         return v
+
+    @model_validator(mode="after")
+    def check_documents(self):
+        validate_document_fields(self.id_document_data, self.id_document_mimetype, self.id_document_filename, "ID document")
+        validate_document_fields(self.proof_of_address_data, self.proof_of_address_mimetype, self.proof_of_address_filename, "proof of address")
+        return self
 
 
 class CheckinRequest(BaseModel):
@@ -650,8 +720,10 @@ def register_sitter(payload: SitterRegistration):
          references_text, availability, reference_name, reference_relationship,
          reference_phone, reference_email, reference_affidavit_consent, paystack_email,
          smile_id_consent, bank_name, account_holder, account_number, agreed_terms,
-         contract_sent, access_code, status, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         contract_sent, access_code, status, created_at,
+         id_document_data, id_document_filename, id_document_mimetype,
+         proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             payload.full_name, payload.id_type, payload.id_number, payload.passport_number,
             payload.nationality, payload.work_permit_number, payload.work_permit_expiry,
@@ -664,6 +736,8 @@ def register_sitter(payload: SitterRegistration):
             payload.paystack_email, int(payload.smile_id_consent), payload.bank_name,
             payload.account_holder, payload.account_number, int(payload.agreed_terms),
             int(emailed), access_code, "pending_verification", now_iso(),
+            payload.id_document_data, payload.id_document_filename, payload.id_document_mimetype,
+            payload.proof_of_address_data, payload.proof_of_address_filename, payload.proof_of_address_mimetype,
         ),
     )
     db.commit()
@@ -694,8 +768,10 @@ def create_booking(payload: BookingRequest):
          phone, email, address, proof_of_address_type, proof_of_address_confirmed,
          children_count, paystack_email, smile_id_consent, booking_date, start_time,
          rate_type, level, hourly_rate, duration_hours, special_instructions, status,
-         agreed_terms, contract_sent, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         agreed_terms, contract_sent, created_at,
+         id_document_data, id_document_filename, id_document_mimetype,
+         proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             ref, pin, payload.parent_name, payload.id_type, payload.id_number,
             payload.passport_number, payload.nationality, payload.phone, payload.email,
@@ -704,6 +780,8 @@ def create_booking(payload: BookingRequest):
             payload.booking_date, payload.start_time, payload.rate_type, payload.level,
             quote["applied_hourly_rate"], payload.duration_hours, payload.special_instructions,
             "pending_match", int(payload.agreed_terms), int(emailed), now_iso(),
+            payload.id_document_data, payload.id_document_filename, payload.id_document_mimetype,
+            payload.proof_of_address_data, payload.proof_of_address_filename, payload.proof_of_address_mimetype,
         ),
     )
     db.commit()
@@ -811,10 +889,41 @@ def admin_login(payload: AdminLoginRequest):
     return {"ok": True}
 
 
+def strip_document_blobs(row: dict) -> dict:
+    """Replace large base64 document blobs with lightweight has_x/filename
+    flags before sending a list of rows to the admin dashboard."""
+    for kind in DOCUMENT_KINDS:
+        data_key = f"{kind}_data"
+        row[f"has_{kind}"] = bool(row.get(data_key))
+        row.pop(data_key, None)
+    return row
+
+
 @app.get("/api/admin/sitters")
 def admin_list_sitters(admin_ok: bool = Depends(require_admin)):
     rows = [dict(r) for r in db.execute("SELECT * FROM babysitters ORDER BY created_at DESC").fetchall()]
+    rows = [strip_document_blobs(r) for r in rows]
     return {"sitters": rows}
+
+
+@app.get("/api/admin/sitters/{sitter_id}/document/{document_type}")
+def admin_get_sitter_document(sitter_id: int, document_type: str, admin_ok: bool = Depends(require_admin)):
+    if document_type not in DOCUMENT_KINDS:
+        raise HTTPException(400, "Unknown document type.")
+    row = db.execute(
+        f"SELECT {document_type}_data AS data, {document_type}_filename AS filename, "
+        f"{document_type}_mimetype AS mimetype FROM babysitters WHERE id = ?",
+        (sitter_id,),
+    ).fetchone()
+    if not row or not row["data"]:
+        raise HTTPException(404, "That sitter hasn't uploaded this document yet.")
+    raw = base64.b64decode(row["data"])
+    filename = row["filename"] or document_type
+    return Response(
+        content=raw,
+        media_type=row["mimetype"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 class AdminSitterVerifyRequest(BaseModel):
@@ -857,7 +966,28 @@ def admin_list_bookings(admin_ok: bool = Depends(require_admin)):
     for r in rows:
         sid = r.get("assigned_sitter_id")
         r["assigned_sitter"] = sitters.get(sid) if sid else None
+        strip_document_blobs(r)
     return {"bookings": rows}
+
+
+@app.get("/api/admin/bookings/{booking_id}/document/{document_type}")
+def admin_get_booking_document(booking_id: int, document_type: str, admin_ok: bool = Depends(require_admin)):
+    if document_type not in DOCUMENT_KINDS:
+        raise HTTPException(400, "Unknown document type.")
+    row = db.execute(
+        f"SELECT {document_type}_data AS data, {document_type}_filename AS filename, "
+        f"{document_type}_mimetype AS mimetype FROM bookings WHERE id = ?",
+        (booking_id,),
+    ).fetchone()
+    if not row or not row["data"]:
+        raise HTTPException(404, "This family hasn't uploaded this document yet.")
+    raw = base64.b64decode(row["data"])
+    filename = row["filename"] or document_type
+    return Response(
+        content=raw,
+        media_type=row["mimetype"] or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 class AdminFamilyVerifyRequest(BaseModel):

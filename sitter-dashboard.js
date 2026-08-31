@@ -43,7 +43,6 @@
     try {
       var sitter = await api.post('/api/sitter/login', { email: email, access_code: code });
       creds = { email: email, access_code: code };
-      sessionStorage.setItem('etl_sitter_creds', JSON.stringify(creds));
       loginError.hidden = true;
       loginBox.hidden = true;
       panel.hidden = false;
@@ -64,22 +63,11 @@
 
   logoutBtn.addEventListener('click', function () {
     creds = null;
-    sessionStorage.removeItem('etl_sitter_creds');
     panel.hidden = true;
     loginBox.hidden = false;
     emailInput.value = '';
     codeInput.value = '';
   });
-
-  var savedCreds = sessionStorage.getItem('etl_sitter_creds');
-  if (savedCreds) {
-    try {
-      creds = JSON.parse(savedCreds);
-      emailInput.value = creds.email;
-      codeInput.value = creds.access_code;
-      tryLogin();
-    } catch (e) { /* ignore */ }
-  }
 
   async function loadBookings() {
     bookingsList.innerHTML = '<div class="dash-empty">Loading your bookings\u2026</div>';

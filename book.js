@@ -22,6 +22,69 @@
 
   var API_ORIGIN = (window.ETL_API && window.ETL_API.base) || '';
 
+  var MAX_DOCUMENT_BYTES = 6 * 1024 * 1024;
+  var ALLOWED_DOCUMENT_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+
+  function readFileAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result || '';
+        var commaIndex = result.indexOf(',');
+        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+      };
+      reader.onerror = function () { reject(new Error('Could not read the file. Please try again.')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setupFileField(inputId) {
+    var input = document.getElementById(inputId);
+    var status = document.getElementById(inputId + '-status');
+    if (!input) return null;
+    if (status) {
+      input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) { status.textContent = ''; status.className = 'file-status'; return; }
+        if (ALLOWED_DOCUMENT_TYPES.indexOf(file.type) === -1) {
+          status.textContent = 'Please choose a JPG, PNG, or PDF file.';
+          status.className = 'file-status file-status--error';
+          input.value = '';
+          return;
+        }
+        if (file.size > MAX_DOCUMENT_BYTES) {
+          status.textContent = 'That file is too large. Please keep it under 6MB.';
+          status.className = 'file-status file-status--error';
+          input.value = '';
+          return;
+        }
+        status.textContent = file.name + ' selected';
+        status.className = 'file-status file-status--ok';
+      });
+    }
+    return input;
+  }
+
+  var idDocumentInput = setupFileField('id_document');
+  var proofOfAddressDocInput = setupFileField('proof_of_address_document');
+
+  async function buildDocumentFields(prefix, input) {
+    var file = input && input.files && input.files[0];
+    if (!file) throw new Error('Please upload your ' + (prefix === 'id_document' ? 'ID/passport document' : 'proof of address document') + '.');
+    if (ALLOWED_DOCUMENT_TYPES.indexOf(file.type) === -1) {
+      throw new Error('Please upload your ' + (prefix === 'id_document' ? 'ID/passport' : 'proof of address') + ' as a JPG, PNG, or PDF file.');
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      throw new Error('Your ' + (prefix === 'id_document' ? 'ID/passport' : 'proof of address') + ' file is too large. Please keep it under 6MB.');
+    }
+    var data = await readFileAsBase64(file);
+    var fields = {};
+    fields[prefix + '_data'] = data;
+    fields[prefix + '_filename'] = file.name;
+    fields[prefix + '_mimetype'] = file.type;
+    return fields;
+  }
+
   // ID type toggle: show/hide SA ID vs Passport field groups
   var idTypeRadios = form.querySelectorAll('[data-id-type-toggle]');
   var idFieldGroups = form.querySelectorAll('[data-id-fields]');
@@ -173,33 +236,37 @@
     var idTypeChecked = form.querySelector('[data-id-type-toggle]:checked');
     var idType = idTypeChecked ? idTypeChecked.value : 'sa_id';
 
-    var payload = {
-      parent_name: form.parent_name.value.trim(),
-      id_type: idType,
-      id_number: form.id_number.value.trim(),
-      passport_number: form.passport_number.value.trim(),
-      nationality: form.nationality.value.trim(),
-      phone: form.phone.value.trim(),
-      email: form.email.value.trim(),
-      address: form.address.value.trim(),
-      children_count: form.children_count.value.trim(),
-      proof_of_address_type: form.proof_of_address_type.value,
-      proof_of_address_confirmed: form.proof_of_address_confirmed.checked,
-      paystack_email: form.paystack_email.value.trim(),
-      smile_id_consent: form.smile_id_consent.checked,
-      booking_date: form.booking_date.value,
-      start_time: form.start_time.value,
-      rate_type: rateType(),
-      level: levelSel.value,
-      hourly_rate: parseFloat(rateInput.value),
-      duration_hours: parseFloat(durationInput.value),
-      special_instructions: form.special_instructions.value.trim(),
-      agreed_terms: form.agreed_terms.checked,
-    };
-
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
+    submitBtn.textContent = 'Uploading documents...';
     try {
+      var idDocFields = await buildDocumentFields('id_document', idDocumentInput);
+      var proofFields = await buildDocumentFields('proof_of_address', proofOfAddressDocInput);
+
+      var payload = Object.assign({
+        parent_name: form.parent_name.value.trim(),
+        id_type: idType,
+        id_number: form.id_number.value.trim(),
+        passport_number: form.passport_number.value.trim(),
+        nationality: form.nationality.value.trim(),
+        phone: form.phone.value.trim(),
+        email: form.email.value.trim(),
+        address: form.address.value.trim(),
+        children_count: form.children_count.value.trim(),
+        proof_of_address_type: form.proof_of_address_type.value,
+        proof_of_address_confirmed: form.proof_of_address_confirmed.checked,
+        paystack_email: form.paystack_email.value.trim(),
+        smile_id_consent: form.smile_id_consent.checked,
+        booking_date: form.booking_date.value,
+        start_time: form.start_time.value,
+        rate_type: rateType(),
+        level: levelSel.value,
+        hourly_rate: parseFloat(rateInput.value),
+        duration_hours: parseFloat(durationInput.value),
+        special_instructions: form.special_instructions.value.trim(),
+        agreed_terms: form.agreed_terms.checked,
+      }, idDocFields, proofFields);
+
+      submitBtn.textContent = 'Submitting...';
       var res = await window.ETL_API.post('/api/bookings', payload);
       resultRef.textContent = res.booking_ref;
       resultPin.textContent = res.pin;

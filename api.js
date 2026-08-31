@@ -74,5 +74,18 @@ window.ETL_API = (function () {
     return data;
   }
 
-  return { post: post, get: get, getAuth: getAuth, postAuth: postAuth, base: API };
+  async function getBlobAuth(path, headers) {
+    var res = await fetch(API + path, { headers: headers || {} });
+    if (!res.ok) {
+      var msg = 'Request failed (' + res.status + ')';
+      try {
+        var data = await res.json();
+        msg = (data && data.detail) || msg;
+      } catch (e) { /* no json body */ }
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+    return await res.blob();
+  }
+
+  return { post: post, get: get, getAuth: getAuth, postAuth: postAuth, getBlobAuth: getBlobAuth, base: API };
 })();

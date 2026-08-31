@@ -1399,6 +1399,102 @@ table.rate-table {
   display: none;
 }
 
+/* ---------- File uploads ---------- */
+.field input[type='file'] {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-offset);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+.field input[type='file']:focus {
+  border-color: var(--color-secondary);
+  outline: 2px solid oklch(from var(--color-secondary) l c h / 0.25);
+  outline-offset: 1px;
+}
+.field input[type='file']::file-selector-button {
+  margin-right: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-secondary);
+  color: #fff8f4;
+  font-weight: 600;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.file-status {
+  display: block;
+  font-size: var(--text-xs);
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}
+.file-status--ok {
+  color: var(--color-success);
+  font-weight: 600;
+}
+.file-status--error {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+/* ---------- Smile ID final step ---------- */
+.form-section--final {
+  background: var(--color-surface-offset);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+.smile-id-placeholder {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface);
+  margin-bottom: var(--space-5);
+}
+.smile-id-placeholder__icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-secondary-highlight);
+  color: var(--color-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.smile-id-placeholder__icon svg {
+  width: 20px;
+  height: 20px;
+}
+.smile-id-placeholder__body {
+  flex: 1;
+  min-width: 0;
+}
+.smile-id-placeholder__body strong {
+  display: block;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+}
+.smile-id-placeholder__body p {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.smile-id-placeholder .badge-verified {
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .smile-id-placeholder {
+    flex-direction: column;
+  }
+}
+
 .booking-ref-box {
   display: flex;
   flex-wrap: wrap;
@@ -1763,6 +1859,18 @@ table.rate-table {
   width: 18px;
   height: 18px;
   accent-color: var(--color-secondary);
+}
+.dash-docs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+.dash-docs__missing {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 .dash-notes textarea {
   width: 100%;

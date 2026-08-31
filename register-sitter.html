@@ -152,8 +152,14 @@
           </div>
 
           <div class="form-section">
-            <div class="form-section__title">Proof of address</div>
-            <div class="form-section__hint">Have a document ready to send to our verification team &mdash; a utility bill, bank statement, lease agreement, or affidavit dated within the last 3 months, matching the home address above.</div>
+            <div class="form-section__title">Upload your documents</div>
+            <div class="form-section__hint">Upload clear photos or scans (JPG, PNG, or PDF, max 6MB each) right here &mdash; our verification team reviews them directly with your application. No need to email or WhatsApp them separately.</div>
+            <div class="field">
+              <label for="id_document">Copy of your ID / passport</label>
+              <input type="file" id="id_document" name="id_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+              <span class="field__hint">JPG, PNG, or PDF &middot; max 6MB</span>
+              <span class="file-status" id="id_document-status"></span>
+            </div>
             <div class="field">
               <label for="proof_of_address_type">Proof of address document type</label>
               <select id="proof_of_address_type" name="proof_of_address_type" required>
@@ -164,18 +170,15 @@
                 <option value="affidavit">Affidavit confirming residential address</option>
               </select>
             </div>
+            <div class="field">
+              <label for="proof_of_address_document">Upload proof of address</label>
+              <input type="file" id="proof_of_address_document" name="proof_of_address_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+              <span class="field__hint">A utility bill, bank statement, lease agreement, or affidavit dated within the last 3 months, matching the home address above &middot; JPG, PNG, or PDF, max 6MB</span>
+              <span class="file-status" id="proof_of_address_document-status"></span>
+            </div>
             <div class="checkbox-field">
               <input type="checkbox" id="proof_of_address_confirmed" name="proof_of_address_confirmed" required />
-              <label for="proof_of_address_confirmed">I confirm this document is dated within the last 3 months, matches the home address above, and I will provide a copy to Elite Traders Lounge on request.</label>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <div class="form-section__title">Verify yourself (Smile ID)</div>
-            <div class="form-section__hint">Elite Traders Lounge partners with Smile ID to confirm your identity against your ID/passport and run a facial-liveness check before you can accept bookings. Once verified, your profile displays a &ldquo;Verified identity&rdquo; badge that families can see.</div>
-            <div class="checkbox-field">
-              <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
-              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) as part of registration.</label>
+              <label for="proof_of_address_confirmed">I confirm this document is dated within the last 3 months and matches the home address above.</label>
             </div>
           </div>
 
@@ -256,6 +259,25 @@
             <div class="field">
               <label for="paystack_email">Paystack account email</label>
               <input type="email" id="paystack_email" name="paystack_email" required />
+            </div>
+          </div>
+
+          <div class="form-section form-section--final">
+            <div class="form-section__title">Final step &middot; Verify your identity with Smile ID</div>
+            <div class="form-section__hint">Elite Traders Lounge partners with Smile ID to confirm your identity against your ID/passport and run a facial-liveness check before you can accept bookings. Once verified, your profile displays a &ldquo;Verified identity&rdquo; badge that families can see.</div>
+            <div class="smile-id-placeholder">
+              <div class="smile-id-placeholder__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M8.5 14.5c1 1 2.2 1.5 3.5 1.5s2.5-.5 3.5-1.5"/></svg>
+              </div>
+              <div class="smile-id-placeholder__body">
+                <strong>Smile ID identity check</strong>
+                <p>This is where document + facial-liveness verification will run automatically once Elite Traders Lounge's Smile ID account is connected. For now, our team manually confirms your identity using the ID document you uploaded above.</p>
+              </div>
+              <span class="badge-verified badge-verified--pending"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Coming soon</span>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
+              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) once this step is activated.</label>
             </div>
           </div>
 

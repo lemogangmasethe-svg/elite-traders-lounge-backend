@@ -1,6 +1,20 @@
-/* Shared API helper for Elite Traders Lounge forms and check-in tool. */
+/* Shared API helper for Elite Traders Lounge forms and check-in tool.
+   Base URL resolution:
+   - Perplexity preview (deploy_website): the __PORT_8000__ placeholder is rewritten
+     to a live proxy URL pointing at the sandbox backend.
+   - Local dev (served from localhost/127.0.0.1): talk to the local backend directly.
+   - Any other host (e.g. Vercel production): use the hosted Render backend. */
 window.ETL_API = (function () {
-  var API = '__PORT_8000__'.startsWith('__') ? 'http://localhost:8000' : '__PORT_8000__';
+  var PLACEHOLDER = '__PORT_8000__';
+  var PRODUCTION_API = 'https://elite-traders-lounge-api.onrender.com';
+  var API;
+  if (!PLACEHOLDER.startsWith('__')) {
+    API = PLACEHOLDER;
+  } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    API = 'http://localhost:8000';
+  } else {
+    API = PRODUCTION_API;
+  }
 
   async function post(path, body) {
     var res = await fetch(API + path, {

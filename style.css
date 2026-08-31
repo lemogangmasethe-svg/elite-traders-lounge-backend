@@ -240,6 +240,9 @@ a:hover {
    Buttons
    ============================================================ */
 
+.btn[hidden] {
+  display: none;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -1495,6 +1498,56 @@ table.rate-table {
   }
 }
 
+/* ---------- Selfie / liveness capture widget ---------- */
+.selfie-capture {
+  margin-bottom: var(--space-5);
+}
+.selfie-capture__frame {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4 / 3;
+  margin: 0 0 var(--space-4);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-offset);
+  border: 1px dashed var(--color-border);
+}
+.selfie-capture__frame video,
+.selfie-capture__frame img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+.selfie-capture__frame video[hidden],
+.selfie-capture__frame img[hidden] {
+  display: none;
+}
+.selfie-capture__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+.selfie-capture__placeholder svg {
+  width: 40px;
+  height: 40px;
+}
+.selfie-capture__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.booking-ref-box[hidden] {
+  display: none;
+}
 .booking-ref-box {
   display: flex;
   flex-wrap: wrap;
@@ -1859,6 +1912,17 @@ table.rate-table {
   width: 18px;
   height: 18px;
   accent-color: var(--color-secondary);
+}
+.dash-smile-status {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.dash-smile-status strong {
+  color: var(--color-text);
 }
 .dash-docs {
   display: flex;

@@ -125,7 +125,25 @@
     ['proof_of_address_verified', 'Proof of address checked'],
     ['reference_verified', 'Reference contacted &amp; confirmed'],
     ['smile_id_verified', 'Smile ID verification complete'],
+    ['registration_fee_paid', 'R99 registration fee received (Paystack)'],
   ];
+
+  var SMILE_STATUS_LABELS = {
+    not_configured: 'Not sent yet (Smile ID key not added)',
+    submitted: 'Sent to Smile ID, awaiting result',
+    received: 'Result received from Smile ID',
+    error: 'Submission failed',
+  };
+
+  function smileIdSummary(r) {
+    var status = r.smile_id_api_status || 'not_configured';
+    var label = SMILE_STATUS_LABELS[status] || status;
+    var parts = ['<strong>Smile ID status:</strong> ' + escapeHtml(label)];
+    if (r.smile_id_job_id) parts.push('Job ID: ' + escapeHtml(r.smile_id_job_id));
+    if (r.smile_id_result_summary) parts.push(escapeHtml(r.smile_id_result_summary));
+    if (typeof r.liveness_frame_count === 'number') parts.push(r.liveness_frame_count + ' liveness frames captured');
+    return '<div class="dash-smile-status">' + parts.join(' &middot; ') + '</div>';
+  }
 
   async function loadSitters() {
     sittersList.innerHTML = '<div class="dash-empty">Loading babysitters\u2026</div>';
@@ -164,7 +182,8 @@
         '<div><dt>Reference</dt><dd>' + escapeHtml(s.reference_name || '\u2013') + '</dd></div>' +
         '</dl>' +
         '<div class="dash-checklist">' + checklist + '</div>' +
-        '<div class="dash-docs">' + docLink('id_document', s.id, s.has_id_document, 'sitters', 'ID / passport document') + docLink('proof_of_address', s.id, s.has_proof_of_address, 'sitters', 'Proof of address') + '</div>' +
+        smileIdSummary(s) +
+        '<div class="dash-docs">' + docLink('id_document', s.id, s.has_id_document, 'sitters', 'ID / passport document') + docLink('proof_of_address', s.id, s.has_proof_of_address, 'sitters', 'Proof of address') + docLink('selfie', s.id, s.has_selfie, 'sitters', 'Selfie photo') + docLink('police_clearance', s.id, s.has_police_clearance, 'sitters', 'Police clearance certificate') + '</div>' +
         '<div class="dash-notes"><textarea data-notes="' + s.id + '" placeholder="Admin notes (e.g. how documents were checked)">' + escapeHtml(s.admin_notes || '') + '</textarea></div>' +
         '<div class="dash-card__actions">' +
         '<button type="button" class="btn btn--primary btn--sm" data-save-sitter="' + s.id + '">Save verification</button>' +
@@ -204,6 +223,7 @@
   var FAMILY_FIELDS = [
     ['family_id_verified', 'Family ID document checked'],
     ['family_proof_of_address_verified', 'Family proof of address checked'],
+    ['registration_fee_paid', 'R99 registration fee received (Paystack)'],
   ];
 
   async function loadBookings() {
@@ -252,7 +272,8 @@
         '<div><dt>Children</dt><dd>' + escapeHtml(b.children_count) + '</dd></div>' +
         '</dl>' +
         '<div class="dash-checklist">' + checklist + '</div>' +
-        '<div class="dash-docs">' + docLink('id_document', b.id, b.has_id_document, 'bookings', 'ID / passport document') + docLink('proof_of_address', b.id, b.has_proof_of_address, 'bookings', 'Proof of address') + '</div>' +
+        smileIdSummary(b) +
+        '<div class="dash-docs">' + docLink('id_document', b.id, b.has_id_document, 'bookings', 'ID / passport document') + docLink('proof_of_address', b.id, b.has_proof_of_address, 'bookings', 'Proof of address') + docLink('selfie', b.id, b.has_selfie, 'bookings', 'Selfie photo') + '</div>' +
         '<div class="dash-card__actions">' +
         '<select data-sitter-select="' + b.id + '">' + sitterOptions(b.assigned_sitter_id) + '</select>' +
         '<button type="button" class="btn btn--secondary btn--sm" data-assign="' + b.id + '">Assign</button>' +

@@ -59,15 +59,24 @@
 
   var idDocumentInput = setupFileField('id_document');
   var proofOfAddressDocInput = setupFileField('proof_of_address_document');
+  var policeClearanceInput = setupFileField('police_clearance_document');
+  var selfieCapture = window.ETLSelfieCapture && window.ETLSelfieCapture.attach('selfie');
+
+  var DOCUMENT_LABELS = {
+    id_document: 'ID/passport document',
+    proof_of_address: 'proof of address document',
+    police_clearance: 'police clearance certificate',
+  };
 
   async function buildDocumentFields(prefix, input) {
+    var label = DOCUMENT_LABELS[prefix] || prefix;
     var file = input && input.files && input.files[0];
-    if (!file) throw new Error('Please upload your ' + (prefix === 'id_document' ? 'ID/passport document' : 'proof of address document') + '.');
+    if (!file) throw new Error('Please upload your ' + label + '.');
     if (ALLOWED_DOCUMENT_TYPES.indexOf(file.type) === -1) {
-      throw new Error('Please upload your ' + (prefix === 'id_document' ? 'ID/passport' : 'proof of address') + ' as a JPG, PNG, or PDF file.');
+      throw new Error('Please upload your ' + label + ' as a JPG, PNG, or PDF file.');
     }
     if (file.size > MAX_DOCUMENT_BYTES) {
-      throw new Error('Your ' + (prefix === 'id_document' ? 'ID/passport' : 'proof of address') + ' file is too large. Please keep it under 6MB.');
+      throw new Error('Your ' + label + ' file is too large. Please keep it under 6MB.');
     }
     var data = await readFileAsBase64(file);
     var fields = {};
@@ -123,8 +132,10 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Uploading documents...';
     try {
+      var selfieFields = selfieCapture ? selfieCapture.buildFields() : (function () { throw new Error('Please capture a selfie using your camera before submitting.'); })();
       var idDocFields = await buildDocumentFields('id_document', idDocumentInput);
       var proofFields = await buildDocumentFields('proof_of_address', proofOfAddressDocInput);
+      var policeClearanceFields = await buildDocumentFields('police_clearance', policeClearanceInput);
 
       var payload = Object.assign({
         full_name: form.full_name.value.trim(),
@@ -151,7 +162,7 @@
         availability: form.availability.value.trim(),
         paystack_email: form.paystack_email.value.trim(),
         agreed_terms: form.agreed_terms.checked,
-      }, idDocFields, proofFields);
+      }, idDocFields, proofFields, policeClearanceFields, selfieFields);
 
       submitBtn.textContent = 'Submitting...';
       var result = await window.ETL_API.post('/api/register-sitter', payload);
@@ -175,7 +186,8 @@
       successBox.hidden = false;
       form.reset();
       syncIdTypeFields();
-      ['id_document-status', 'proof_of_address_document-status'].forEach(function (id) {
+      if (selfieCapture) selfieCapture.reset();
+      ['id_document-status', 'proof_of_address_document-status', 'police_clearance_document-status'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) { el.textContent = ''; el.className = 'file-status'; }
       });

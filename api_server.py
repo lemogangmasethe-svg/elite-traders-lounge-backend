@@ -8,6 +8,7 @@ confirmation system used to track worked hours for every booking.
 Runs on port 8000 inside the sandbox.
 """
 import base64
+import json
 import os
 import random
 import re
@@ -20,10 +21,12 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+import smile_id
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -161,13 +164,44 @@ MIGRATION_COLUMNS = [
     # Parity with babysitters.smile_id_verified — lets admin mark a family's
     # Smile ID step as complete too, once that integration is wired up.
     ("bookings", "family_smile_id_verified", "INTEGER NOT NULL DEFAULT 0"),
+    # Selfie + liveness-burst capture (for automatic Smile ID Biometric KYC),
+    # a mandatory police clearance certificate upload for babysitters only,
+    # and the resulting Smile ID job tracking columns. All stored as base64
+    # text like the documents above.
+    ("babysitters", "selfie_data", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "selfie_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "selfie_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "liveness_images_json", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "police_clearance_data", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "police_clearance_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "police_clearance_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "smile_id_job_id", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "smile_id_api_status", "TEXT NOT NULL DEFAULT 'not_configured'"),
+    ("babysitters", "smile_id_result_summary", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "smile_id_submitted_at", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "registration_fee_paid", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "selfie_data", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "selfie_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "selfie_mimetype", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "liveness_images_json", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "smile_id_job_id", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "smile_id_api_status", "TEXT NOT NULL DEFAULT 'not_configured'"),
+    ("bookings", "smile_id_result_summary", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "smile_id_submitted_at", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "registration_fee_paid", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 # Document upload constants — used by /api/sitter/documents and
 # /api/family/documents. Kept small since files are stored as base64 text.
-DOCUMENT_KINDS = ("id_document", "proof_of_address")
+# "selfie" applies to both sitters and families; "police_clearance" is a
+# babysitter-only mandatory upload (SITTER_ONLY_DOCUMENT_KINDS below).
+DOCUMENT_KINDS = ("id_document", "proof_of_address", "selfie")
+SITTER_ONLY_DOCUMENT_KINDS = ("police_clearance",)
 MAX_DOCUMENT_BYTES = 6 * 1024 * 1024  # 6MB
 ALLOWED_DOCUMENT_MIMETYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"}
+ALLOWED_SELFIE_MIMETYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+MAX_LIVENESS_FRAMES = 10
+MIN_LIVENESS_FRAMES = 3
 
 
 def run_migrations(conn):
@@ -341,13 +375,14 @@ def sitter_public(row: dict) -> dict:
     }
 
 
-def validate_document_fields(data_b64: str, mimetype: str, filename: str, label: str) -> None:
+def validate_document_fields(data_b64: str, mimetype: str, filename: str, label: str, allowed_mimetypes=None) -> None:
     """Validate a base64-encoded document upload sent inline with a
     registration/booking payload. Raises ValueError with a friendly message."""
+    allowed = allowed_mimetypes or ALLOWED_DOCUMENT_MIMETYPES
     if not (data_b64 or "").strip():
         raise ValueError(f"please upload a copy of your {label}")
     mt = (mimetype or "").lower()
-    if mt not in ALLOWED_DOCUMENT_MIMETYPES:
+    if mt not in allowed:
         raise ValueError(f"your {label} must be a JPG, PNG, or PDF file")
     try:
         raw = base64.b64decode(data_b64, validate=True)
@@ -357,6 +392,25 @@ def validate_document_fields(data_b64: str, mimetype: str, filename: str, label:
         raise ValueError(f"your {label} file is too large — please upload one under 6MB")
     if not (filename or "").strip():
         raise ValueError(f"your {label} file is missing a filename — please try uploading it again")
+
+
+def validate_liveness_frames(frames, label: str = "liveness photos") -> None:
+    """Validate the burst of liveness-check frames captured from the camera
+    widget (a JSON-encoded list of base64 JPEG strings). Raises ValueError
+    with a friendly message."""
+    if not isinstance(frames, list) or len(frames) < MIN_LIVENESS_FRAMES:
+        raise ValueError(f"please complete the {label} capture (turn on your camera and try again)")
+    if len(frames) > MAX_LIVENESS_FRAMES:
+        frames = frames[:MAX_LIVENESS_FRAMES]
+    total_bytes = 0
+    for frame in frames:
+        try:
+            raw = base64.b64decode(frame, validate=True)
+        except Exception:
+            raise ValueError(f"one of your {label} could not be read — please retake your selfie")
+        total_bytes += len(raw)
+    if total_bytes > MAX_DOCUMENT_BYTES * 2:
+        raise ValueError(f"your {label} capture is too large — please retake your selfie")
 
 
 def booking_window(date_str: str, time_str: str, duration_hours: float):
@@ -444,6 +498,13 @@ class SitterRegistration(BaseModel):
     proof_of_address_data: str = Field(default="")
     proof_of_address_filename: str = Field(default="")
     proof_of_address_mimetype: str = Field(default="")
+    selfie_data: str = Field(default="")
+    selfie_filename: str = Field(default="")
+    selfie_mimetype: str = Field(default="")
+    liveness_images: list = Field(default_factory=list)
+    police_clearance_data: str = Field(default="")
+    police_clearance_filename: str = Field(default="")
+    police_clearance_mimetype: str = Field(default="")
 
     _validate_email = field_validator("email")(validate_email)
     _validate_reference_email = field_validator("reference_email")(validate_email)
@@ -512,6 +573,12 @@ class SitterRegistration(BaseModel):
     def check_documents(self):
         validate_document_fields(self.id_document_data, self.id_document_mimetype, self.id_document_filename, "ID document")
         validate_document_fields(self.proof_of_address_data, self.proof_of_address_mimetype, self.proof_of_address_filename, "proof of address")
+        validate_document_fields(self.selfie_data, self.selfie_mimetype, self.selfie_filename, "selfie photo", ALLOWED_SELFIE_MIMETYPES)
+        validate_liveness_frames(self.liveness_images)
+        validate_document_fields(
+            self.police_clearance_data, self.police_clearance_mimetype, self.police_clearance_filename,
+            "police clearance certificate",
+        )
         return self
 
 
@@ -546,6 +613,10 @@ class BookingRequest(BaseModel):
     proof_of_address_data: str = Field(default="")
     proof_of_address_filename: str = Field(default="")
     proof_of_address_mimetype: str = Field(default="")
+    selfie_data: str = Field(default="")
+    selfie_filename: str = Field(default="")
+    selfie_mimetype: str = Field(default="")
+    liveness_images: list = Field(default_factory=list)
 
     @field_validator("level")
     @classmethod
@@ -607,6 +678,8 @@ class BookingRequest(BaseModel):
     def check_documents(self):
         validate_document_fields(self.id_document_data, self.id_document_mimetype, self.id_document_filename, "ID document")
         validate_document_fields(self.proof_of_address_data, self.proof_of_address_mimetype, self.proof_of_address_filename, "proof of address")
+        validate_document_fields(self.selfie_data, self.selfie_mimetype, self.selfie_filename, "selfie photo", ALLOWED_SELFIE_MIMETYPES)
+        validate_liveness_frames(self.liveness_images)
         return self
 
 
@@ -732,10 +805,41 @@ def health():
     return {"ok": True}
 
 
+def _run_smile_id_submission(*, table: str, row_id: int, kind: str, full_name: str, email: str, phone: str,
+                              id_type: str, id_number: str, selfie_data: str, liveness_images: list) -> None:
+    """Best-effort automatic Smile ID submission. Never raises — failures are
+    stored on the row as an "error" status so admin can see them, but the
+    registration/booking itself always succeeds regardless of Smile ID."""
+    try:
+        result = smile_id.submit_biometric_kyc(
+            user_id=f"{kind}-{row_id}",
+            job_id=f"{kind}-{row_id}-{int(datetime.now(timezone.utc).timestamp())}",
+            full_name=full_name,
+            email=email,
+            phone=phone,
+            id_type=id_type,
+            id_number=id_number,
+            selfie_bytes=base64.b64decode(selfie_data),
+            liveness_bytes_list=[base64.b64decode(f) for f in liveness_images],
+        )
+    except Exception as exc:  # noqa: BLE001 — best-effort by design
+        result = {"status": "error", "message": str(exc)}
+    db.execute(
+        f"UPDATE {table} SET smile_id_job_id = ?, smile_id_api_status = ?, "
+        f"smile_id_result_summary = ?, smile_id_submitted_at = ? WHERE id = ?",
+        (
+            result.get("job_id", ""), result.get("status", "error"),
+            result.get("message", ""), now_iso(), row_id,
+        ),
+    )
+    db.commit()
+
+
 @app.post("/api/register-sitter", status_code=201)
 def register_sitter(payload: SitterRegistration):
     emailed = send_contract_email(payload.email, payload.full_name, "sitter")
     access_code = gen_access_code()
+    liveness_json = json.dumps(payload.liveness_images)
     cur = db.execute(
         """INSERT INTO babysitters
         (full_name, id_type, id_number, passport_number, nationality, work_permit_number,
@@ -746,8 +850,10 @@ def register_sitter(payload: SitterRegistration):
          smile_id_consent, bank_name, account_holder, account_number, agreed_terms,
          contract_sent, access_code, status, created_at,
          id_document_data, id_document_filename, id_document_mimetype,
-         proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype,
+         selfie_data, selfie_filename, selfie_mimetype, liveness_images_json,
+         police_clearance_data, police_clearance_filename, police_clearance_mimetype)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             payload.full_name, payload.id_type, payload.id_number, payload.passport_number,
             payload.nationality, payload.work_permit_number, payload.work_permit_expiry,
@@ -762,11 +868,20 @@ def register_sitter(payload: SitterRegistration):
             int(emailed), access_code, "pending_verification", now_iso(),
             payload.id_document_data, payload.id_document_filename, payload.id_document_mimetype,
             payload.proof_of_address_data, payload.proof_of_address_filename, payload.proof_of_address_mimetype,
+            payload.selfie_data, payload.selfie_filename, payload.selfie_mimetype, liveness_json,
+            payload.police_clearance_data, payload.police_clearance_filename, payload.police_clearance_mimetype,
         ),
     )
     db.commit()
+    sitter_id = cur.lastrowid
+    _run_smile_id_submission(
+        table="babysitters", row_id=sitter_id, kind="sitter",
+        full_name=payload.full_name, email=payload.email, phone=payload.phone,
+        id_type=payload.id_type, id_number=payload.id_number or payload.passport_number,
+        selfie_data=payload.selfie_data, liveness_images=payload.liveness_images,
+    )
     return {
-        "id": cur.lastrowid,
+        "id": sitter_id,
         "access_code": access_code,
         "status": "pending_verification",
         "contract_url": contract_url_for("sitter"),
@@ -786,7 +901,8 @@ def create_booking(payload: BookingRequest):
     ref = gen_booking_ref()
     pin = gen_pin()
     emailed = send_contract_email(payload.email, payload.parent_name, "family")
-    db.execute(
+    liveness_json = json.dumps(payload.liveness_images)
+    cur = db.execute(
         """INSERT INTO bookings
         (booking_ref, pin, parent_name, id_type, id_number, passport_number, nationality,
          phone, email, address, proof_of_address_type, proof_of_address_confirmed,
@@ -794,8 +910,9 @@ def create_booking(payload: BookingRequest):
          rate_type, level, hourly_rate, duration_hours, special_instructions, status,
          agreed_terms, contract_sent, created_at,
          id_document_data, id_document_filename, id_document_mimetype,
-         proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype,
+         selfie_data, selfie_filename, selfie_mimetype, liveness_images_json)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             ref, pin, payload.parent_name, payload.id_type, payload.id_number,
             payload.passport_number, payload.nationality, payload.phone, payload.email,
@@ -806,9 +923,16 @@ def create_booking(payload: BookingRequest):
             "pending_match", int(payload.agreed_terms), int(emailed), now_iso(),
             payload.id_document_data, payload.id_document_filename, payload.id_document_mimetype,
             payload.proof_of_address_data, payload.proof_of_address_filename, payload.proof_of_address_mimetype,
+            payload.selfie_data, payload.selfie_filename, payload.selfie_mimetype, liveness_json,
         ),
     )
     db.commit()
+    _run_smile_id_submission(
+        table="bookings", row_id=cur.lastrowid, kind="family",
+        full_name=payload.parent_name, email=payload.email, phone=payload.phone,
+        id_type=payload.id_type, id_number=payload.id_number or payload.passport_number,
+        selfie_data=payload.selfie_data, liveness_images=payload.liveness_images,
+    )
     return {
         "booking_ref": ref,
         "pin": pin,
@@ -913,26 +1037,32 @@ def admin_login(payload: AdminLoginRequest):
     return {"ok": True}
 
 
-def strip_document_blobs(row: dict) -> dict:
+def strip_document_blobs(row: dict, extra_kinds=()) -> dict:
     """Replace large base64 document blobs with lightweight has_x/filename
     flags before sending a list of rows to the admin dashboard."""
-    for kind in DOCUMENT_KINDS:
+    for kind in (*DOCUMENT_KINDS, *extra_kinds):
         data_key = f"{kind}_data"
         row[f"has_{kind}"] = bool(row.get(data_key))
         row.pop(data_key, None)
+    liveness = row.pop("liveness_images_json", None)
+    if liveness is not None:
+        try:
+            row["liveness_frame_count"] = len(json.loads(liveness) or [])
+        except Exception:
+            row["liveness_frame_count"] = 0
     return row
 
 
 @app.get("/api/admin/sitters")
 def admin_list_sitters(admin_ok: bool = Depends(require_admin)):
     rows = [dict(r) for r in db.execute("SELECT * FROM babysitters ORDER BY created_at DESC").fetchall()]
-    rows = [strip_document_blobs(r) for r in rows]
+    rows = [strip_document_blobs(r, extra_kinds=SITTER_ONLY_DOCUMENT_KINDS) for r in rows]
     return {"sitters": rows}
 
 
 @app.get("/api/admin/sitters/{sitter_id}/document/{document_type}")
 def admin_get_sitter_document(sitter_id: int, document_type: str, admin_ok: bool = Depends(require_admin)):
-    if document_type not in DOCUMENT_KINDS:
+    if document_type not in (*DOCUMENT_KINDS, *SITTER_ONLY_DOCUMENT_KINDS):
         raise HTTPException(400, "Unknown document type.")
     row = db.execute(
         f"SELECT {document_type}_data AS data, {document_type}_filename AS filename, "
@@ -955,6 +1085,7 @@ class AdminSitterVerifyRequest(BaseModel):
     proof_of_address_verified: bool = False
     reference_verified: bool = False
     smile_id_verified: bool = False
+    registration_fee_paid: bool = False
     admin_notes: Optional[str] = ""
 
 
@@ -970,10 +1101,11 @@ def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin
     status = "verified" if verified else "pending_verification"
     db.execute(
         """UPDATE babysitters SET id_doc_verified=?, proof_of_address_verified=?, reference_verified=?,
-        smile_id_verified=?, verified=?, status=?, admin_notes=? WHERE id=?""",
+        smile_id_verified=?, registration_fee_paid=?, verified=?, status=?, admin_notes=? WHERE id=?""",
         (
             int(payload.id_doc_verified), int(payload.proof_of_address_verified),
             int(payload.reference_verified), int(payload.smile_id_verified),
+            int(payload.registration_fee_paid),
             int(verified), status, payload.admin_notes or "", sitter_id,
         ),
     )
@@ -1017,6 +1149,7 @@ def admin_get_booking_document(booking_id: int, document_type: str, admin_ok: bo
 class AdminFamilyVerifyRequest(BaseModel):
     family_id_verified: bool = False
     family_proof_of_address_verified: bool = False
+    registration_fee_paid: bool = False
     admin_notes: Optional[str] = ""
 
 
@@ -1028,14 +1161,45 @@ def admin_verify_family(booking_id: int, payload: AdminFamilyVerifyRequest, admi
     verified = payload.family_id_verified and payload.family_proof_of_address_verified
     db.execute(
         """UPDATE bookings SET family_id_verified=?, family_proof_of_address_verified=?,
-        family_verified=?, admin_notes=? WHERE id=?""",
+        registration_fee_paid=?, family_verified=?, admin_notes=? WHERE id=?""",
         (
             int(payload.family_id_verified), int(payload.family_proof_of_address_verified),
+            int(payload.registration_fee_paid),
             int(verified), payload.admin_notes or "", booking_id,
         ),
     )
     db.commit()
     return {"id": booking_id, "family_verified": verified}
+
+
+@app.post("/api/smile-id/callback")
+async def smile_id_callback(request: Request):
+    """Smile ID posts the final verification result here asynchronously
+    (no auth header — Smile ID calls this directly). We store the raw
+    result for admin review rather than auto-approving anyone, since a
+    wrong auto-approval on a platform that serves families with children
+    is a much bigger risk than an admin doing one extra manual check."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    partner_params = body.get("PartnerParams") or body.get("partner_params") or {}
+    user_id = partner_params.get("user_id") or body.get("user_id") or ""
+    result_text = body.get("ResultText") or body.get("result_text") or ""
+    result_code = body.get("ResultCode") or body.get("result_code") or ""
+    summary = f"{result_code}: {result_text}".strip(": ")
+    if "-" not in user_id:
+        return {"ok": False, "message": "unrecognised user_id in callback"}
+    kind, _, rec_id = user_id.partition("-")
+    table = "babysitters" if kind == "sitter" else "bookings" if kind == "family" else None
+    if not table or not rec_id.isdigit():
+        return {"ok": False, "message": "unrecognised user_id in callback"}
+    db.execute(
+        f"UPDATE {table} SET smile_id_api_status = 'received', smile_id_result_summary = ? WHERE id = ?",
+        (summary, int(rec_id)),
+    )
+    db.commit()
+    return {"ok": True}
 
 
 class AdminAssignRequest(BaseModel):

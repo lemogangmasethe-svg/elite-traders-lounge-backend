@@ -67,6 +67,7 @@
 
   var idDocumentInput = setupFileField('id_document');
   var proofOfAddressDocInput = setupFileField('proof_of_address_document');
+  var selfieCapture = window.ETLSelfieCapture && window.ETLSelfieCapture.attach('selfie');
 
   async function buildDocumentFields(prefix, input) {
     var file = input && input.files && input.files[0];
@@ -239,6 +240,7 @@
     submitBtn.disabled = true;
     submitBtn.textContent = 'Uploading documents...';
     try {
+      var selfieFields = selfieCapture ? selfieCapture.buildFields() : (function () { throw new Error('Please capture a selfie using your camera before submitting.'); })();
       var idDocFields = await buildDocumentFields('id_document', idDocumentInput);
       var proofFields = await buildDocumentFields('proof_of_address', proofOfAddressDocInput);
 
@@ -264,7 +266,7 @@
         duration_hours: parseFloat(durationInput.value),
         special_instructions: form.special_instructions.value.trim(),
         agreed_terms: form.agreed_terms.checked,
-      }, idDocFields, proofFields);
+      }, idDocFields, proofFields, selfieFields);
 
       submitBtn.textContent = 'Submitting...';
       var res = await window.ETL_API.post('/api/bookings', payload);

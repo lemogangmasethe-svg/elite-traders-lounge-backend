@@ -7,6 +7,7 @@ confirmation system used to track worked hours for every booking.
 
 Runs on port 8000 inside the sandbox.
 """
+import os
 import random
 import re
 import sqlite3
@@ -27,71 +28,139 @@ def validate_email(v: str) -> str:
         raise ValueError("invalid email address")
     return v.strip()
 
+
+# ---------------------------------------------------------------------------
+# Database backend: Postgres (Neon) in production when DATABASE_URL is set,
+# SQLite locally/in the sandbox otherwise. Both are exposed through the same
+# `db.execute(sql, params)` / `.fetchone()` / `.fetchall()` / `.commit()`
+# interface using "?" placeholders, so the route handlers below never need
+# to know which backend is active.
+# ---------------------------------------------------------------------------
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+USE_POSTGRES = bool(DATABASE_URL)
 DB_PATH = "data.db"
 
+SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS babysitters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name TEXT NOT NULL,
+    id_number TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT NOT NULL,
+    address TEXT NOT NULL,
+    experience_level TEXT NOT NULL,
+    years_experience TEXT NOT NULL,
+    certifications TEXT,
+    references_text TEXT NOT NULL,
+    availability TEXT NOT NULL,
+    bank_name TEXT NOT NULL,
+    account_holder TEXT NOT NULL,
+    account_number TEXT NOT NULL,
+    agreed_terms INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending_verification',
+    created_at TEXT NOT NULL
+);
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+CREATE TABLE IF NOT EXISTS bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_ref TEXT UNIQUE NOT NULL,
+    pin TEXT NOT NULL,
+    parent_name TEXT NOT NULL,
+    id_number TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT NOT NULL,
+    address TEXT NOT NULL,
+    children_count TEXT NOT NULL,
+    booking_date TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    rate_type TEXT NOT NULL,
+    level TEXT NOT NULL,
+    hourly_rate REAL NOT NULL,
+    duration_hours REAL NOT NULL,
+    special_instructions TEXT,
+    status TEXT NOT NULL DEFAULT 'pending_match',
+    agreed_terms INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS checkins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_ref TEXT NOT NULL,
+    role TEXT NOT NULL,
+    action TEXT NOT NULL,
+    note TEXT,
+    timestamp TEXT NOT NULL
+);
+"""
+
+if USE_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+
+    class _PgCursor:
+        """Wraps a psycopg2 cursor so callers can use dict-style rows and
+        .lastrowid the same way the sqlite3 cursor is used elsewhere."""
+
+        def __init__(self, cur, lastrowid=None):
+            self._cur = cur
+            self.lastrowid = lastrowid
+
+        def fetchone(self):
+            row = self._cur.fetchone()
+            return dict(row) if row is not None else None
+
+        def fetchall(self):
+            return [dict(r) for r in self._cur.fetchall()]
+
+    class _PgConn:
+        """Wraps a psycopg2 connection to mimic the sqlite3 connection API
+        used by the route handlers (execute/commit/close), translating "?"
+        placeholders to "%s" and emulating INSERT ... lastrowid via
+        RETURNING id for the tables that need it."""
+
+        def __init__(self, conn):
+            self._conn = conn
+
+        def execute(self, sql, params=()):
+            pg_sql = sql.replace("?", "%s")
+            needs_id = pg_sql.strip().upper().startswith(
+                ("INSERT INTO BABYSITTERS", "INSERT INTO BOOKINGS")
+            ) and "RETURNING" not in pg_sql.upper()
+            if needs_id:
+                pg_sql += " RETURNING id"
+            cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(pg_sql, params)
+            lastrowid = None
+            if needs_id:
+                row = cur.fetchone()
+                lastrowid = row["id"] if row else None
+            return _PgCursor(cur, lastrowid=lastrowid)
+
+        def executescript(self, script):
+            # Schema is provisioned separately (via migration) in Postgres.
+            pass
+
+        def commit(self):
+            self._conn.commit()
+
+        def close(self):
+            self._conn.close()
+
+    def get_db():
+        conn = psycopg2.connect(DATABASE_URL)
+        return _PgConn(conn)
+
+else:
+    def get_db():
+        conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 db = get_db()
-db.executescript(
-    """
-    CREATE TABLE IF NOT EXISTS babysitters (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        full_name TEXT NOT NULL,
-        id_number TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
-        address TEXT NOT NULL,
-        experience_level TEXT NOT NULL,
-        years_experience TEXT NOT NULL,
-        certifications TEXT,
-        references_text TEXT NOT NULL,
-        availability TEXT NOT NULL,
-        bank_name TEXT NOT NULL,
-        account_holder TEXT NOT NULL,
-        account_number TEXT NOT NULL,
-        agreed_terms INTEGER NOT NULL DEFAULT 0,
-        status TEXT NOT NULL DEFAULT 'pending_verification',
-        created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS bookings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        booking_ref TEXT UNIQUE NOT NULL,
-        pin TEXT NOT NULL,
-        parent_name TEXT NOT NULL,
-        id_number TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
-        address TEXT NOT NULL,
-        children_count TEXT NOT NULL,
-        booking_date TEXT NOT NULL,
-        start_time TEXT NOT NULL,
-        rate_type TEXT NOT NULL,
-        level TEXT NOT NULL,
-        hourly_rate REAL NOT NULL,
-        duration_hours REAL NOT NULL,
-        special_instructions TEXT,
-        status TEXT NOT NULL DEFAULT 'pending_match',
-        agreed_terms INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS checkins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        booking_ref TEXT NOT NULL,
-        role TEXT NOT NULL,
-        action TEXT NOT NULL,
-        note TEXT,
-        timestamp TEXT NOT NULL
-    );
-    """
-)
-db.commit()
+if not USE_POSTGRES:
+    db.executescript(SCHEMA_SQL)
+    db.commit()
 
 
 @asynccontextmanager
@@ -391,4 +460,4 @@ def checkin(payload: CheckinRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))

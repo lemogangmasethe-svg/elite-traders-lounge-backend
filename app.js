@@ -41,25 +41,20 @@
     });
   }
 
-  /* ---------- How it works tabs ---------- */
-  var tabs = document.querySelectorAll('.tab');
-  var familyPanel = document.getElementById('panel-family');
-  var sitterPanel = document.getElementById('panel-sitter');
-
-  tabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      tabs.forEach(function (t) {
-        t.setAttribute('aria-selected', 'false');
+  /* ---------- Tabs (How it works, guide, partners — any number of tabs per group) ---------- */
+  document.querySelectorAll('.tabs').forEach(function (tabGroup) {
+    var groupTabs = tabGroup.querySelectorAll('.tab');
+    groupTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        groupTabs.forEach(function (t) {
+          t.setAttribute('aria-selected', 'false');
+          var panel = document.getElementById(t.getAttribute('aria-controls'));
+          if (panel) panel.hidden = true;
+        });
+        tab.setAttribute('aria-selected', 'true');
+        var activePanel = document.getElementById(tab.getAttribute('aria-controls'));
+        if (activePanel) activePanel.hidden = false;
       });
-      tab.setAttribute('aria-selected', 'true');
-      var which = tab.getAttribute('data-tab');
-      if (which === 'family') {
-        familyPanel.hidden = false;
-        sitterPanel.hidden = true;
-      } else {
-        familyPanel.hidden = true;
-        sitterPanel.hidden = false;
-      }
     });
   });
 
@@ -82,4 +77,44 @@
       }
     });
   });
+
+  /* ---------- Hotel / Airbnb partner inquiry form ---------- */
+  var partnerForm = document.getElementById('partner-form');
+  if (partnerForm && window.ETL_API) {
+    var partnerSubmit = document.getElementById('partner-submit');
+    var partnerError = document.getElementById('partner-error');
+    var partnerErrorText = document.getElementById('partner-error-text');
+    var partnerSuccess = document.getElementById('partner-success');
+
+    partnerForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      partnerError.hidden = true;
+      partnerSuccess.hidden = true;
+      if (!partnerForm.reportValidity()) return;
+
+      var payload = {
+        business_name: partnerForm.business_name.value.trim(),
+        property_type: partnerForm.property_type.value,
+        contact_name: partnerForm.contact_name.value.trim(),
+        email: partnerForm.email.value.trim(),
+        phone: partnerForm.phone.value.trim(),
+        city: partnerForm.city.value.trim(),
+        message: partnerForm.message.value.trim(),
+      };
+
+      partnerSubmit.disabled = true;
+      partnerSubmit.textContent = 'Sending...';
+      try {
+        await window.ETL_API.post('/api/partner-inquiries', payload);
+        partnerForm.reset();
+        partnerSuccess.hidden = false;
+      } catch (err) {
+        partnerErrorText.textContent = err.message || 'Something went wrong. Please try again, or email us directly.';
+        partnerError.hidden = false;
+      } finally {
+        partnerSubmit.disabled = false;
+        partnerSubmit.textContent = 'Send partnership inquiry';
+      }
+    });
+  }
 })();

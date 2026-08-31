@@ -140,6 +140,7 @@
       <div class="tabs" role="tablist" aria-label="View booking flow by role" style="margin-top: var(--space-10);">
         <button class="tab" role="tab" aria-selected="true" id="tab-family" aria-controls="panel-family" data-tab="family">For families</button>
         <button class="tab" role="tab" aria-selected="false" id="tab-sitter" aria-controls="panel-sitter" data-tab="sitter">For babysitters</button>
+        <button class="tab" role="tab" aria-selected="false" id="tab-partners" aria-controls="panel-partners" data-tab="partners">For hotels &amp; hosts</button>
       </div>
 
       <div class="steps" id="panel-family" role="tabpanel" aria-labelledby="tab-family">
@@ -201,6 +202,98 @@
             <h3>Get paid</h3>
             <p>Once the family confirms, Paystack pays your net amount (after the 10–15% commission) directly to your own Paystack account in 3–5 business days.</p>
           </div>
+        </div>
+      </div>
+
+      <div class="steps" id="panel-partners" role="tabpanel" aria-labelledby="tab-partners" hidden>
+        <div class="step is-active" data-panel="partners">
+          <div class="step-card">
+            <span class="step-card__num">01</span>
+            <h3>Tell us about your property</h3>
+            <p>Run a hotel, guesthouse, or Airbnb/BnB? Send us your details using the form below, or email us directly — we'll reply within 2 business days.</p>
+          </div>
+        </div>
+        <div class="step is-active" data-panel="partners">
+          <div class="step-card">
+            <span class="step-card__num">02</span>
+            <h3>We set up your partnership</h3>
+            <p>We agree a simple referral arrangement so your guests can book directly through Elite Traders Lounge, with the same Smile ID checks and Paystack Split Payment protection used on every booking.</p>
+          </div>
+        </div>
+        <div class="step is-active" data-panel="partners">
+          <div class="step-card">
+            <span class="step-card__num">03</span>
+            <h3>Your guests book with confidence</h3>
+            <p>Offer verified childcare as a guest amenity — no extra staff and no liability for your property, since every babysitter is background-checked and identity-verified before meeting a guest's child.</p>
+          </div>
+        </div>
+
+        <div style="grid-column: 1 / -1; margin-top: var(--space-10); max-width: 640px;">
+        <div class="form-section">
+          <div class="form-section__title">Partner with us</div>
+          <div class="form-section__hint">Email us directly, or send your details using the short form below.</div>
+        </div>
+        <div class="check-list" style="margin-top: 0; margin-bottom: var(--space-6);">
+          <div class="check-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z" fill="none"/><path d="M4 6l8 7 8-7"/></svg>
+            <div>
+              <h3>Email</h3>
+              <p><a href="mailto:lemo.masethe@elitetraders.co.za?subject=Hotel%2FAirbnb%20partnership%20inquiry">lemo.masethe@elitetraders.co.za</a></p>
+            </div>
+          </div>
+        </div>
+
+        <form id="partner-form" novalidate>
+          <div class="field-grid">
+            <div class="field">
+              <label for="partner_business_name">Hotel / property name</label>
+              <input type="text" id="partner_business_name" name="business_name" required minlength="2" maxlength="150" />
+            </div>
+            <div class="field">
+              <label for="partner_property_type">Property type</label>
+              <select id="partner_property_type" name="property_type" required>
+                <option value="">Select one</option>
+                <option value="Hotel">Hotel</option>
+                <option value="Guesthouse">Guesthouse</option>
+                <option value="Airbnb / BnB">Airbnb / BnB</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="partner_contact_name">Your name</label>
+              <input type="text" id="partner_contact_name" name="contact_name" required minlength="2" maxlength="120" />
+            </div>
+            <div class="field">
+              <label for="partner_phone">Phone number</label>
+              <input type="tel" id="partner_phone" name="phone" required minlength="7" maxlength="20" />
+            </div>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="partner_email">Email address</label>
+              <input type="email" id="partner_email" name="email" required />
+            </div>
+            <div class="field">
+              <label for="partner_city">City / town</label>
+              <input type="text" id="partner_city" name="city" maxlength="80" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="partner_message">Tell us a bit about your property (optional)</label>
+            <textarea id="partner_message" name="message" rows="3" maxlength="1000"></textarea>
+          </div>
+
+          <div class="alert alert--error" id="partner-error" hidden>
+            <p id="partner-error-text"></p>
+          </div>
+          <div class="alert alert--success" id="partner-success" hidden>
+            <p>Thank you — we've received your details and will be in touch within 2 business days.</p>
+          </div>
+
+          <button type="submit" class="btn btn--primary" id="partner-submit">Send partnership inquiry</button>
+        </form>
         </div>
       </div>
     </div>
@@ -660,6 +753,7 @@
   </div>
 </footer>
 
+<script src="./api.js" defer></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

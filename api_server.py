@@ -99,6 +99,18 @@ CREATE TABLE IF NOT EXISTS checkins (
     note TEXT,
     timestamp TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS partner_inquiries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    business_name TEXT NOT NULL,
+    property_type TEXT NOT NULL,
+    contact_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    city TEXT NOT NULL DEFAULT '',
+    message TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
 """
 
 # Columns added after the original launch (identity/verification, proof of
@@ -961,6 +973,69 @@ def send_contract_email(to_email: str, recipient_name: str, kind: str) -> bool:
 
 @app.get("/api/health")
 def health():
+    return {"ok": True}
+
+
+class PartnerInquiry(BaseModel):
+    business_name: str = Field(min_length=2, max_length=150)
+    property_type: str = Field(min_length=2, max_length=40)
+    contact_name: str = Field(min_length=2, max_length=120)
+    email: str
+    phone: str = Field(min_length=7, max_length=20)
+    city: Optional[str] = ""
+    message: Optional[str] = Field(default="", max_length=1000)
+
+    @field_validator("email")
+    @classmethod
+    def check_email(cls, v):
+        return validate_email(v)
+
+
+def send_partner_inquiry_email(inquiry: PartnerInquiry) -> bool:
+    """Best-effort notification email to Elite Traders Lounge when a hotel,
+    guesthouse, or Airbnb/BnB host submits a partnership inquiry. Never
+    raises — the inquiry is already saved to the database regardless of
+    whether this email succeeds."""
+    if not SMTP_HOST or not SMTP_USER or not SMTP_PASS or not EMAIL_FROM:
+        return False
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = f"New partner inquiry — {inquiry.business_name}"
+        msg["From"] = EMAIL_FROM
+        msg["To"] = "lemo.masethe@elitetraders.co.za"
+        msg["Reply-To"] = inquiry.email
+        msg.set_content(
+            "A hotel/guesthouse/Airbnb host has asked to partner with Elite Traders Lounge.\n\n"
+            f"Business / property name: {inquiry.business_name}\n"
+            f"Property type: {inquiry.property_type}\n"
+            f"Contact name: {inquiry.contact_name}\n"
+            f"Email: {inquiry.email}\n"
+            f"Phone: {inquiry.phone}\n"
+            f"City: {inquiry.city or '—'}\n\n"
+            f"Message:\n{inquiry.message or '(no message provided)'}\n"
+        )
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+        return True
+    except Exception:
+        return False
+
+
+@app.post("/api/partner-inquiries", status_code=201)
+def create_partner_inquiry(payload: PartnerInquiry):
+    db.execute(
+        "INSERT INTO partner_inquiries (business_name, property_type, contact_name, email, phone, city, "
+        "message, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            payload.business_name.strip(), payload.property_type.strip(), payload.contact_name.strip(),
+            payload.email.strip(), payload.phone.strip(), (payload.city or "").strip(),
+            (payload.message or "").strip(), now_iso(),
+        ),
+    )
+    db.commit()
+    send_partner_inquiry_email(payload)
     return {"ok": True}
 
 

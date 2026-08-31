@@ -54,10 +54,14 @@ def is_configured() -> bool:
 
 
 def _get_token(product: str = "biometric_kyc") -> str:
+    # Smile ID's /v3/token endpoint requires multipart/form-data (a plain
+    # application/x-www-form-urlencoded body returns 415 Unsupported Media
+    # Type). Passing a `files=` dict forces `requests` to encode as multipart
+    # even though there is no actual file to upload here.
     resp = requests.post(
         f"{SMILE_ID_BASE}/v3/token",
         headers={"smileid-partner-id": SMILE_ID_PARTNER_ID, "smileid-api-key": _api_key()},
-        data={"product": product},
+        files={"product": (None, product)},
         timeout=_REQUEST_TIMEOUT,
     )
     resp.raise_for_status()

@@ -203,10 +203,6 @@ REGISTER_BODY = '''
                 <input type="text" id="passport_number" name="passport_number" maxlength="20" />
               </div>
               <div class="field">
-                <label for="nationality">Nationality</label>
-                <input type="text" id="nationality" name="nationality" maxlength="60" />
-              </div>
-              <div class="field">
                 <label for="work_permit_number">Work permit number</label>
                 <input type="text" id="work_permit_number" name="work_permit_number" maxlength="40" />
                 <span class="field__hint">Required by South African immigration law &mdash; freelance babysitters who are not SA citizens or permanent residents must hold a valid work permit.</span>
@@ -215,6 +211,11 @@ REGISTER_BODY = '''
                 <label for="work_permit_expiry">Work permit expiry date</label>
                 <input type="date" id="work_permit_expiry" name="work_permit_expiry" />
               </div>
+            </div>
+
+            <div class="field">
+              <label for="nationality">Nationality</label>
+              <input type="text" id="nationality" name="nationality" required maxlength="60" placeholder="e.g. South African" />
             </div>
 
             <div class="field-grid">
@@ -230,6 +231,38 @@ REGISTER_BODY = '''
             <div class="field">
               <label for="address">Home address</label>
               <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Public profile (shown to families)</div>
+            <div class="form-section__hint">Once you're verified, families browsing babysitters on our website see this information alongside your photo, so they can choose who best fits their household. Your profile photo is simply the selfie you capture below for identity verification &mdash; no separate upload needed.</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="profile_gender">Gender</label>
+                <select id="profile_gender" name="profile_gender" required>
+                  <option value="" disabled selected>Select</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="profile_race">Race / ethnicity</label>
+                <select id="profile_race" name="profile_race" required>
+                  <option value="" disabled selected>Select</option>
+                  <option value="black_african">Black African</option>
+                  <option value="coloured">Coloured</option>
+                  <option value="indian_asian">Indian / Asian</option>
+                  <option value="white">White</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="profile_age">Age</label>
+                <input type="number" id="profile_age" name="profile_age" min="18" max="80" required placeholder="e.g. 28" />
+              </div>
             </div>
           </div>
 
@@ -491,6 +524,19 @@ BOOK_BODY = '''
                 <input type="text" id="children_count" name="children_count" required minlength="1" maxlength="20" placeholder="e.g. 2 children, ages 3 and 6" />
               </div>
             </div>
+
+            <div class="field">
+              <label>Do you have any pets at home?</label>
+              <div class="action-toggle">
+                <label><input type="radio" name="has_pets" value="no" checked data-has-pets-toggle /> No pets</label>
+                <label><input type="radio" name="has_pets" value="yes" data-has-pets-toggle /> Yes, we have pets</label>
+              </div>
+              <span class="field__hint">This helps us find the best-fit babysitter for your household and keeps your children and pets safe together.</span>
+            </div>
+            <div class="field" data-pet-type-field hidden>
+              <label for="pet_type">What type of pet(s) do you have?</label>
+              <input type="text" id="pet_type" name="pet_type" maxlength="120" placeholder="e.g. 1 medium dog, 2 cats" />
+            </div>
           </div>
 
           <div class="form-section">
@@ -580,7 +626,7 @@ BOOK_BODY = '''
 
             <div class="field">
               <label for="special_instructions">Care instructions <span class="field__hint">(optional)</span></label>
-              <textarea id="special_instructions" name="special_instructions" maxlength="1000" placeholder="Feeding, naps, medication, emergency contacts, house rules..."></textarea>
+              <textarea id="special_instructions" name="special_instructions" maxlength="1000" placeholder="Feeding, naps, emergency contacts, house rules..."></textarea>
             </div>
 
             <div class="quote-box" id="quote-box" hidden>
@@ -590,6 +636,46 @@ BOOK_BODY = '''
               <div class="quote-box__row total"><span>Total booking fee</span><strong id="q-fee">&ndash;</strong></div>
               <div class="quote-box__row"><span>Net to babysitter</span><strong id="q-net">&ndash;</strong></div>
               <p class="quote-box__note" id="q-note" hidden></p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Special requests &amp; important rules</div>
+            <div class="form-section__hint">Tell us if you need extra help with your child's routine, and please read the rules below carefully &mdash; they protect your child and your babysitter.</div>
+            <div class="field-grid">
+              <div class="checkbox-field">
+                <input type="checkbox" id="special_bath_baby" name="special_bath_baby" />
+                <label for="special_bath_baby">Babysitter will be required to bath the baby / child</label>
+              </div>
+              <div class="checkbox-field">
+                <input type="checkbox" id="special_feed_baby" name="special_feed_baby" />
+                <label for="special_feed_baby">Babysitter will be required to feed the baby / child</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="special_precautions">Special precautions the babysitter must follow <span class="field__hint">(optional)</span></label>
+              <textarea id="special_precautions" name="special_precautions" maxlength="1000" placeholder="Allergies, safe-sleep routine, feeding schedule, any other precautions..."></textarea>
+            </div>
+            <div class="alert alert--error" style="align-items:flex-start;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <span>Babysitters are <strong>not permitted to administer any medicine</strong> to a child under any circumstances, and may only perform duties directly related to caring for the child (feeding, bathing, comforting, play, and supervision as requested above) &mdash; <strong>never general household cleaning or chores</strong>. If a family or babysitter breaks either rule, Elite Traders Lounge is not held liable for the consequences.</span>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Choose a babysitter <span class="field__hint">(optional)</span></div>
+            <div class="form-section__hint">Browse verified babysitters and tell us who you'd prefer &mdash; our admin team makes the final assignment based on real availability and the best fit for your family, but your preference helps guide that decision. Fill in the booking date, start time, and duration above first to see who's available.</div>
+            <div class="sitter-browse" id="sitter-browse">
+              <label class="sitter-card sitter-card--none">
+                <input type="radio" name="preferred_sitter_id" value="" checked />
+                <div class="sitter-card__body">
+                  <strong>No preference</strong>
+                  <span>Let Elite Traders Lounge assign the best-suited available babysitter.</span>
+                </div>
+              </label>
+              <div id="sitter-browse-list" class="sitter-browse__list">
+                <p class="sitter-browse__empty" id="sitter-browse-empty">Loading verified babysitters&hellip;</p>
+              </div>
             </div>
           </div>
 
@@ -1026,6 +1112,7 @@ TERMS_BODY = '''
           <li><strong>Elite Traders Lounge does not hold, custody, or accept responsibility for any wallet balance.</strong> Funds in transit are held and disbursed by Paystack as the payment processor, subject to Paystack's own terms of service; Elite Traders Lounge's role is limited to configuring the commission split and facilitating bookings.</li>
           <li>Commission rates (10%&ndash;15% depending on level and booking type, per Appendix C) are unchanged and are deducted automatically as part of the Paystack split &mdash; no additional platform or service fee is charged on top of this commission.</li>
           <li>Refunds for eligible cancellations (see <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>) are issued via Paystack back to the Family's original payment method.</li>
+          <li><strong>Once-off registration &amp; verification fee &mdash; R99.</strong> Every Babysitter and every Family pays a single, once-off R99 fee to cover identity and document verification, payable via the Paystack payment link provided on the registration and booking forms. This fee is completely separate from, and in addition to, the booking commission described above, and is not refundable once verification has begun. It is only ever charged once per person &mdash; you will not be asked to pay it again on future bookings.</li>
         </ul>
       </div>
 
@@ -1045,6 +1132,13 @@ TERMS_BODY = '''
           <li>Both parties must use the <a href="./checkin.html">dual-party check-in tool</a> to confirm arrival and departure at every booking; timestamps recorded there are treated as the primary evidence of hours worked in any dispute.</li>
           <li>The full Code of Conduct, Dispute Resolution process, and Termination &amp; Suspension terms are set out on the <a href="./policies.html#conduct">Policies page</a> and form part of these Terms.</li>
         </ul>
+        <div class="policy-callout"><strong>Scope of duties &mdash; strictly limited to childcare:</strong>
+          <ul style="margin-top: var(--space-3); margin-bottom: 0;">
+            <li><strong>No administration of medicine.</strong> A Babysitter may never administer any medicine, supplement, or medical treatment of any kind to a child in their care, under any circumstances, regardless of any instruction given by the Family. If a Family or Babysitter breaches this rule, Elite Traders Lounge accepts no liability whatsoever for any resulting harm, loss, or damage, and the breaching party or parties bear full responsibility.</li>
+            <li><strong>No cleaning or general household duties.</strong> A Babysitter's duties are limited strictly to the direct care and supervision of the child or children being minded &mdash; including only those specific tasks (such as bathing or feeding) that the Family has indicated when making the booking. Babysitters are not required, and must not be asked, to perform housecleaning, laundry, cooking for the household, or any other duty unrelated to childcare.</li>
+            <li><strong>Pet disclosure.</strong> Families must disclose at the time of booking whether there are pets in the home and, if so, what type, so that Elite Traders Lounge and the Babysitter can take appropriate precautions for the safety of the children and the Babysitter. Failure to disclose pets is a breach of these Terms.</li>
+          </ul>
+        </div>
       </div>
 
       <div class="policy-section" id="suspension">
@@ -1065,6 +1159,7 @@ TERMS_BODY = '''
         <h2>9. Limitation of Liability</h2>
         <ul>
           <li>Elite Traders Lounge verifies identity, proof of address, and references on a best-efforts basis but does not guarantee the conduct, performance, or suitability of any Babysitter or Family, and is not liable for any loss, injury, or damage arising from a booking arranged through the platform.</li>
+          <li>As set out in Section 7 above, Elite Traders Lounge is not liable for any harm, loss, or damage arising from a Babysitter administering medicine to a child, or from either party breaching the duties, pet-disclosure, or no-cleaning rules described there.</li>
           <li>Elite Traders Lounge is not a party to, and is not liable for, the processing, custody, or timing of payments handled by Paystack; any payment dispute involving Paystack is subject to Paystack's own terms and support channels.</li>
           <li>Nothing in these Terms excludes any liability that cannot lawfully be excluded under South African law.</li>
         </ul>
@@ -1124,6 +1219,7 @@ ADMIN_BODY = '''
         <div class="dash-tabs" role="tablist">
           <button type="button" class="dash-tab is-active" data-tab="sitters" role="tab">Babysitters</button>
           <button type="button" class="dash-tab" data-tab="bookings" role="tab">Bookings &amp; scheduling</button>
+          <button type="button" class="dash-tab" data-tab="calendar" role="tab">Calendar</button>
         </div>
 
         <div class="dash-tabpanel" data-tabpanel="sitters">
@@ -1136,9 +1232,139 @@ ADMIN_BODY = '''
         </div>
 
         <div class="dash-tabpanel" data-tabpanel="bookings" hidden>
+          <div class="dash-toolbar" style="margin-bottom: var(--space-5);">
+            <span></span>
+            <button type="button" class="btn btn--primary btn--sm" id="open-manual-booking-btn">+ New manual booking</button>
+          </div>
           <div class="dash-card-list" id="bookings-list">
             <div class="dash-empty">Loading bookings&hellip;</div>
           </div>
+        </div>
+
+        <div class="dash-tabpanel" data-tabpanel="calendar" hidden>
+          <div class="mini-cal mini-cal--admin" id="admin-calendar">
+            <div class="mini-cal__head">
+              <button type="button" class="mini-cal__nav" id="admin-cal-prev" aria-label="Previous month">&larr;</button>
+              <h3 id="admin-cal-title">This month</h3>
+              <button type="button" class="mini-cal__nav" id="admin-cal-next" aria-label="Next month">&rarr;</button>
+            </div>
+            <div class="mini-cal__grid" id="admin-cal-grid"></div>
+            <div class="mini-cal__legend">
+              <span><span class="mini-cal__swatch" style="background:var(--color-secondary-highlight);"></span>Has bookings (click a day for details)</span>
+              <span><span class="mini-cal__swatch" style="background:var(--color-warning-highlight);"></span>Pending assignment</span>
+            </div>
+          </div>
+          <div id="admin-cal-day-detail" class="admin-cal-day-detail" hidden></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="manual-booking-modal" hidden>
+        <div class="modal-box">
+          <div class="modal-box__head">
+            <h2>New manual booking</h2>
+            <button type="button" class="btn btn--ghost btn--sm" id="close-manual-booking-btn">Close</button>
+          </div>
+          <p class="form-section__hint">Use this to capture a booking over the phone or in case of a system error. No family document upload or Smile ID check is required here &mdash; you're vouching for this booking as admin.</p>
+          <form id="manual-booking-form" novalidate>
+            <div class="field-grid">
+              <div class="field">
+                <label for="mb_parent_name">Parent / guardian full name</label>
+                <input type="text" id="mb_parent_name" name="parent_name" required />
+              </div>
+              <div class="field">
+                <label for="mb_phone">Phone number</label>
+                <input type="tel" id="mb_phone" name="phone" required />
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="mb_email">Email address <span class="field__hint">(optional)</span></label>
+                <input type="email" id="mb_email" name="email" />
+              </div>
+              <div class="field">
+                <label for="mb_address">Home address</label>
+                <input type="text" id="mb_address" name="address" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="mb_children_count">Number and ages of children</label>
+              <input type="text" id="mb_children_count" name="children_count" required placeholder="e.g. 2 children, ages 3 and 6" />
+            </div>
+            <div class="field-grid field-grid--3">
+              <div class="field">
+                <label for="mb_rate_type">Booking type</label>
+                <select id="mb_rate_type" name="rate_type" required>
+                  <option value="day">Day</option>
+                  <option value="overnight">Overnight</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="mb_level">Level</label>
+                <select id="mb_level" name="level" required>
+                  <option value="1">Level 1</option>
+                  <option value="2">Level 2</option>
+                  <option value="3">Level 3</option>
+                  <option value="4">Level 4</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="mb_hourly_rate">Hourly rate (R)</label>
+                <input type="number" id="mb_hourly_rate" name="hourly_rate" min="1" step="0.01" required />
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="mb_duration_hours">Duration (hours)</label>
+                <input type="number" id="mb_duration_hours" name="duration_hours" min="1" step="0.5" required />
+              </div>
+              <div class="field">
+                <label for="mb_booking_date">Booking date</label>
+                <input type="date" id="mb_booking_date" name="booking_date" required />
+              </div>
+              <div class="field">
+                <label for="mb_start_time">Start time</label>
+                <input type="time" id="mb_start_time" name="start_time" required />
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="checkbox-field">
+                <input type="checkbox" id="mb_has_pets" name="has_pets" />
+                <label for="mb_has_pets">Family has pets</label>
+              </div>
+              <div class="field">
+                <label for="mb_pet_type">Pet type <span class="field__hint">(if any)</span></label>
+                <input type="text" id="mb_pet_type" name="pet_type" />
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="checkbox-field">
+                <input type="checkbox" id="mb_special_bath_baby" name="special_bath_baby" />
+                <label for="mb_special_bath_baby">Bath the baby/child</label>
+              </div>
+              <div class="checkbox-field">
+                <input type="checkbox" id="mb_special_feed_baby" name="special_feed_baby" />
+                <label for="mb_special_feed_baby">Feed the baby/child</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="mb_special_instructions">Care instructions / precautions <span class="field__hint">(optional)</span></label>
+              <textarea id="mb_special_instructions" name="special_instructions"></textarea>
+            </div>
+            <div class="field">
+              <label for="mb_assign_sitter_id">Assign a babysitter now <span class="field__hint">(optional)</span></label>
+              <select id="mb_assign_sitter_id" name="assign_sitter_id"></select>
+            </div>
+            <div class="field">
+              <label for="mb_admin_notes">Admin notes <span class="field__hint">(optional)</span></label>
+              <textarea id="mb_admin_notes" name="admin_notes" placeholder="e.g. captured over the phone, system was down"></textarea>
+            </div>
+            <div class="alert alert--error" id="manual-booking-error" hidden>
+              <span id="manual-booking-error-text">Something went wrong.</span>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn--primary" id="manual-booking-submit">Create booking</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -1183,7 +1409,9 @@ SITTER_BODY = '''
 
         <div class="mini-cal" id="sitter-calendar">
           <div class="mini-cal__head">
+            <button type="button" class="mini-cal__nav" id="mini-cal-prev" aria-label="Previous month">&larr;</button>
             <h3 id="mini-cal-title">This month</h3>
+            <button type="button" class="mini-cal__nav" id="mini-cal-next" aria-label="Next month">&rarr;</button>
           </div>
           <div class="mini-cal__grid" id="mini-cal-grid"></div>
           <div class="mini-cal__legend">

@@ -97,7 +97,7 @@
       group.hidden = !isActive;
       group.querySelectorAll('input').forEach(function (input) {
         if (isActive) {
-          if (input.id === 'id_number' || input.id === 'passport_number' || input.id === 'nationality' || input.id === 'work_permit_number' || input.id === 'work_permit_expiry') {
+          if (input.id === 'id_number' || input.id === 'passport_number' || input.id === 'work_permit_number' || input.id === 'work_permit_expiry') {
             input.required = true;
           }
         } else {
@@ -160,6 +160,9 @@
         reference_email: form.reference_email.value.trim(),
         reference_affidavit_consent: form.reference_affidavit_consent.checked,
         availability: form.availability.value.trim(),
+        profile_gender: form.profile_gender.value,
+        profile_race: form.profile_race.value,
+        profile_age: parseInt(form.profile_age.value, 10) || 0,
         paystack_email: form.paystack_email.value.trim(),
         agreed_terms: form.agreed_terms.checked,
       }, idDocFields, proofFields, policeClearanceFields, selfieFields);

@@ -111,6 +111,21 @@
   });
   syncIdTypeFields();
 
+  // Pet disclosure toggle: show/hide pet type field
+  var hasPetsRadios = form.querySelectorAll('[data-has-pets-toggle]');
+  var petTypeField = form.querySelector('[data-pet-type-field]');
+  var petTypeInput = document.getElementById('pet_type');
+  function syncPetTypeField() {
+    var checked = form.querySelector('[data-has-pets-toggle]:checked');
+    var hasPets = checked && checked.value === 'yes';
+    if (petTypeField) petTypeField.hidden = !hasPets;
+    if (petTypeInput) petTypeInput.required = hasPets;
+  }
+  hasPetsRadios.forEach(function (radio) {
+    radio.addEventListener('change', syncPetTypeField);
+  });
+  syncPetTypeField();
+
   var bandHint = document.getElementById('band-hint');
   var levelSel = document.getElementById('level');
   var rateInput = document.getElementById('hourly_rate');
@@ -123,6 +138,75 @@
   var qFee = document.getElementById('q-fee');
   var qNet = document.getElementById('q-net');
   var qNote = document.getElementById('q-note');
+
+  // Babysitter browse: fetch verified sitters and show live availability based on chosen date/time/duration
+  var sitterBrowseList = document.getElementById('sitter-browse-list');
+  var sitterBrowseEmpty = document.getElementById('sitter-browse-empty');
+  var GENDER_LABELS = { female: 'Female', male: 'Male', prefer_not_to_say: 'Prefer not to say' };
+  var RACE_LABELS = { black_african: 'Black African', coloured: 'Coloured', indian_asian: 'Indian / Asian', white: 'White', other: 'Other', prefer_not_to_say: 'Prefer not to say' };
+
+  function renderSitterCard(sitter) {
+    var label = document.createElement('label');
+    label.className = 'sitter-card' + (sitter.available === false ? ' sitter-card--unavailable' : '');
+    var details = [];
+    if (sitter.profile_gender) details.push(GENDER_LABELS[sitter.profile_gender] || sitter.profile_gender);
+    if (sitter.profile_age) details.push(sitter.profile_age + ' yrs');
+    if (sitter.nationality) details.push(sitter.nationality);
+    if (sitter.profile_race) details.push(RACE_LABELS[sitter.profile_race] || sitter.profile_race);
+    var ratingHtml = sitter.rating ? ('<span class="sitter-card__rating">\u2605 ' + sitter.rating.toFixed(1) + '</span>') : '<span class="sitter-card__rating sitter-card__rating--none">Not yet rated</span>';
+    var availHtml = sitter.available === false
+      ? '<span class="badge-verified badge-verified--pending">Unavailable for this slot</span>'
+      : '<span class="badge-verified">Available</span>';
+    var photoHtml = sitter.has_photo
+      ? '<img src="' + API_ORIGIN + sitter.photo_url + '" alt="' + sitter.full_name + '" class="sitter-card__photo" />'
+      : '<div class="sitter-card__photo sitter-card__photo--placeholder">' + (sitter.full_name ? sitter.full_name.charAt(0) : '?') + '</div>';
+    label.innerHTML =
+      '<input type="radio" name="preferred_sitter_id" value="' + sitter.id + '"' + (sitter.available === false ? ' disabled' : '') + ' />' +
+      photoHtml +
+      '<div class="sitter-card__body">' +
+        '<strong>' + sitter.full_name + '</strong>' +
+        '<span class="sitter-card__meta">' + details.join(' \u00b7 ') + '</span>' +
+        '<span class="sitter-card__badges">' + ratingHtml + ' ' + availHtml + '</span>' +
+      '</div>';
+    return label;
+  }
+
+  async function loadSitterBrowse() {
+    if (!sitterBrowseList) return;
+    try {
+      var params = new URLSearchParams();
+      if (form.booking_date.value) params.set('date', form.booking_date.value);
+      if (form.start_time.value) params.set('start_time', form.start_time.value);
+      if (durationInput.value) params.set('duration_hours', durationInput.value);
+      var query = params.toString();
+      var result = await window.ETL_API.get('/api/babysitters/public' + (query ? '?' + query : ''));
+      var sitters = (result && result.babysitters) || [];
+      sitterBrowseList.innerHTML = '';
+      if (!sitters.length) {
+        var empty = document.createElement('p');
+        empty.className = 'sitter-browse__empty';
+        empty.textContent = 'No verified babysitters are listed yet. Submit your booking and our team will assign one manually.';
+        sitterBrowseList.appendChild(empty);
+        return;
+      }
+      sitters.forEach(function (sitter) {
+        sitterBrowseList.appendChild(renderSitterCard(sitter));
+      });
+    } catch (err) {
+      if (sitterBrowseEmpty) {
+        sitterBrowseEmpty.textContent = 'Could not load babysitters right now \u2014 you can still submit your booking without choosing one.';
+        sitterBrowseList.innerHTML = '';
+        sitterBrowseList.appendChild(sitterBrowseEmpty);
+      }
+    }
+  }
+  ['booking_date', 'start_time'].forEach(function (name) {
+    var el = form.querySelector('[name="' + name + '"]');
+    if (el) el.addEventListener('change', loadSitterBrowse);
+  });
+  if (durationInput) durationInput.addEventListener('change', loadSitterBrowse);
+  loadSitterBrowse();
+
 
   function rateType() {
     var el = form.querySelector('input[name="rate_type"]:checked');
@@ -265,6 +349,16 @@
         hourly_rate: parseFloat(rateInput.value),
         duration_hours: parseFloat(durationInput.value),
         special_instructions: form.special_instructions.value.trim(),
+        has_pets: (form.querySelector('[data-has-pets-toggle]:checked') || {}).value === 'yes',
+        pet_type: form.pet_type.value.trim(),
+        special_bath_baby: form.special_bath_baby.checked,
+        special_feed_baby: form.special_feed_baby.checked,
+        special_precautions: form.special_precautions.value.trim(),
+        preferred_sitter_id: (function () {
+          var el = form.querySelector('input[name="preferred_sitter_id"]:checked');
+          var v = el ? el.value : '';
+          return v ? parseInt(v, 10) : null;
+        })(),
         agreed_terms: form.agreed_terms.checked,
       }, idDocFields, proofFields, selfieFields);
 

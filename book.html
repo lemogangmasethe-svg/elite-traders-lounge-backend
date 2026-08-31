@@ -146,6 +146,19 @@
                 <input type="text" id="children_count" name="children_count" required minlength="1" maxlength="20" placeholder="e.g. 2 children, ages 3 and 6" />
               </div>
             </div>
+
+            <div class="field">
+              <label>Do you have any pets at home?</label>
+              <div class="action-toggle">
+                <label><input type="radio" name="has_pets" value="no" checked data-has-pets-toggle /> No pets</label>
+                <label><input type="radio" name="has_pets" value="yes" data-has-pets-toggle /> Yes, we have pets</label>
+              </div>
+              <span class="field__hint">This helps us find the best-fit babysitter for your household and keeps your children and pets safe together.</span>
+            </div>
+            <div class="field" data-pet-type-field hidden>
+              <label for="pet_type">What type of pet(s) do you have?</label>
+              <input type="text" id="pet_type" name="pet_type" maxlength="120" placeholder="e.g. 1 medium dog, 2 cats" />
+            </div>
           </div>
 
           <div class="form-section">
@@ -235,7 +248,7 @@
 
             <div class="field">
               <label for="special_instructions">Care instructions <span class="field__hint">(optional)</span></label>
-              <textarea id="special_instructions" name="special_instructions" maxlength="1000" placeholder="Feeding, naps, medication, emergency contacts, house rules..."></textarea>
+              <textarea id="special_instructions" name="special_instructions" maxlength="1000" placeholder="Feeding, naps, emergency contacts, house rules..."></textarea>
             </div>
 
             <div class="quote-box" id="quote-box" hidden>
@@ -245,6 +258,46 @@
               <div class="quote-box__row total"><span>Total booking fee</span><strong id="q-fee">&ndash;</strong></div>
               <div class="quote-box__row"><span>Net to babysitter</span><strong id="q-net">&ndash;</strong></div>
               <p class="quote-box__note" id="q-note" hidden></p>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Special requests &amp; important rules</div>
+            <div class="form-section__hint">Tell us if you need extra help with your child's routine, and please read the rules below carefully &mdash; they protect your child and your babysitter.</div>
+            <div class="field-grid">
+              <div class="checkbox-field">
+                <input type="checkbox" id="special_bath_baby" name="special_bath_baby" />
+                <label for="special_bath_baby">Babysitter will be required to bath the baby / child</label>
+              </div>
+              <div class="checkbox-field">
+                <input type="checkbox" id="special_feed_baby" name="special_feed_baby" />
+                <label for="special_feed_baby">Babysitter will be required to feed the baby / child</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="special_precautions">Special precautions the babysitter must follow <span class="field__hint">(optional)</span></label>
+              <textarea id="special_precautions" name="special_precautions" maxlength="1000" placeholder="Allergies, safe-sleep routine, feeding schedule, any other precautions..."></textarea>
+            </div>
+            <div class="alert alert--error" style="align-items:flex-start;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <span>Babysitters are <strong>not permitted to administer any medicine</strong> to a child under any circumstances, and may only perform duties directly related to caring for the child (feeding, bathing, comforting, play, and supervision as requested above) &mdash; <strong>never general household cleaning or chores</strong>. If a family or babysitter breaks either rule, Elite Traders Lounge is not held liable for the consequences.</span>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Choose a babysitter <span class="field__hint">(optional)</span></div>
+            <div class="form-section__hint">Browse verified babysitters and tell us who you'd prefer &mdash; our admin team makes the final assignment based on real availability and the best fit for your family, but your preference helps guide that decision. Fill in the booking date, start time, and duration above first to see who's available.</div>
+            <div class="sitter-browse" id="sitter-browse">
+              <label class="sitter-card sitter-card--none">
+                <input type="radio" name="preferred_sitter_id" value="" checked />
+                <div class="sitter-card__body">
+                  <strong>No preference</strong>
+                  <span>Let Elite Traders Lounge assign the best-suited available babysitter.</span>
+                </div>
+              </label>
+              <div id="sitter-browse-list" class="sitter-browse__list">
+                <p class="sitter-browse__empty" id="sitter-browse-empty">Loading verified babysitters&hellip;</p>
+              </div>
             </div>
           </div>
 

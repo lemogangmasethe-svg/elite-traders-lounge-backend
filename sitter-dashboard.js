@@ -15,10 +15,15 @@
   var bookingsList = document.getElementById('sitter-bookings-list');
   var calGrid = document.getElementById('mini-cal-grid');
   var calTitle = document.getElementById('mini-cal-title');
+  var calPrevBtn = document.getElementById('mini-cal-prev');
+  var calNextBtn = document.getElementById('mini-cal-next');
 
   var creds = null; // { email, access_code }
   var lastSitter = null;
   var lastBookings = [];
+  var calToday = new Date();
+  var calYear = calToday.getFullYear();
+  var calMonth = calToday.getMonth();
 
   function escapeHtml(str) {
     return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
@@ -137,14 +142,14 @@
   // --- Calendar ---
   function renderCalendar() {
     if (!lastSitter) return;
-    var today = new Date();
-    var year = today.getFullYear();
-    var month = today.getMonth();
-    calTitle.textContent = today.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' });
+    var today = calToday;
+    var year = calYear;
+    var month = calMonth;
+    calTitle.textContent = new Date(year, month, 1).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' });
 
     var bookedDates = {};
     lastBookings.forEach(function (b) {
-      if (b.status === 'assigned' && b.sitter_response === 'accepted') {
+      if ((b.status === 'assigned' || b.status === 'confirmed') && b.sitter_response === 'accepted') {
         bookedDates[b.booking_date] = true;
       }
     });
@@ -193,4 +198,19 @@
       alert('Could not update availability: ' + err.message);
     }
   });
+
+  if (calPrevBtn) {
+    calPrevBtn.addEventListener('click', function () {
+      calMonth -= 1;
+      if (calMonth < 0) { calMonth = 11; calYear -= 1; }
+      renderCalendar();
+    });
+  }
+  if (calNextBtn) {
+    calNextBtn.addEventListener('click', function () {
+      calMonth += 1;
+      if (calMonth > 11) { calMonth = 0; calYear += 1; }
+      renderCalendar();
+    });
+  }
 })();

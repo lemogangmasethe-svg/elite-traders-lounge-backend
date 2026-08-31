@@ -121,10 +121,6 @@
                 <input type="text" id="passport_number" name="passport_number" maxlength="20" />
               </div>
               <div class="field">
-                <label for="nationality">Nationality</label>
-                <input type="text" id="nationality" name="nationality" maxlength="60" />
-              </div>
-              <div class="field">
                 <label for="work_permit_number">Work permit number</label>
                 <input type="text" id="work_permit_number" name="work_permit_number" maxlength="40" />
                 <span class="field__hint">Required by South African immigration law &mdash; freelance babysitters who are not SA citizens or permanent residents must hold a valid work permit.</span>
@@ -133,6 +129,11 @@
                 <label for="work_permit_expiry">Work permit expiry date</label>
                 <input type="date" id="work_permit_expiry" name="work_permit_expiry" />
               </div>
+            </div>
+
+            <div class="field">
+              <label for="nationality">Nationality</label>
+              <input type="text" id="nationality" name="nationality" required maxlength="60" placeholder="e.g. South African" />
             </div>
 
             <div class="field-grid">
@@ -148,6 +149,38 @@
             <div class="field">
               <label for="address">Home address</label>
               <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Public profile (shown to families)</div>
+            <div class="form-section__hint">Once you're verified, families browsing babysitters on our website see this information alongside your photo, so they can choose who best fits their household. Your profile photo is simply the selfie you capture below for identity verification &mdash; no separate upload needed.</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="profile_gender">Gender</label>
+                <select id="profile_gender" name="profile_gender" required>
+                  <option value="" disabled selected>Select</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="profile_race">Race / ethnicity</label>
+                <select id="profile_race" name="profile_race" required>
+                  <option value="" disabled selected>Select</option>
+                  <option value="black_african">Black African</option>
+                  <option value="coloured">Coloured</option>
+                  <option value="indian_asian">Indian / Asian</option>
+                  <option value="white">White</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="profile_age">Age</label>
+                <input type="number" id="profile_age" name="profile_age" min="18" max="80" required placeholder="e.g. 28" />
+              </div>
             </div>
           </div>
 

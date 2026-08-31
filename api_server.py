@@ -189,6 +189,26 @@ MIGRATION_COLUMNS = [
     ("bookings", "smile_id_result_summary", "TEXT NOT NULL DEFAULT ''"),
     ("bookings", "smile_id_submitted_at", "TEXT NOT NULL DEFAULT ''"),
     ("bookings", "registration_fee_paid", "INTEGER NOT NULL DEFAULT 0"),
+    # Public babysitter profile (browsable by families once verified) and
+    # admin-settable star rating. Profile photo reuses selfie_data —
+    # no separate upload column needed, per product decision.
+    ("babysitters", "profile_gender", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "profile_race", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "profile_age", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "rating", "REAL NOT NULL DEFAULT 0"),
+    # Pet disclosure and in-booking special requests (bathing/feeding/
+    # precautions), plus a family's optional preferred-sitter pick — the
+    # final assignment is still made by admin via assigned_sitter_id.
+    ("bookings", "has_pets", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "pet_type", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "special_bath_baby", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "special_feed_baby", "INTEGER NOT NULL DEFAULT 0"),
+    ("bookings", "special_precautions", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "preferred_sitter_id", "INTEGER"),
+    # Marks a booking created directly by admin (phone-in / manual entry,
+    # e.g. when the online system is down) rather than submitted by a
+    # family through the website.
+    ("bookings", "created_by_admin", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 # Document upload constants — used by /api/sitter/documents and
@@ -375,6 +395,35 @@ def sitter_public(row: dict) -> dict:
     }
 
 
+GENDER_LABELS = {"female": "Female", "male": "Male", "prefer_not_to_say": "Prefer not to say"}
+RACE_LABELS = {
+    "black_african": "Black African", "coloured": "Coloured", "indian_asian": "Indian / Asian",
+    "white": "White", "other": "Other", "prefer_not_to_say": "Prefer not to say",
+}
+
+
+def sitter_public_profile(row: dict, available: Optional[bool] = None) -> dict:
+    """Public-facing profile shown to families browsing verified babysitters.
+    Never includes documents, contact details, or anything beyond what a
+    family needs to choose a preferred sitter. `available` is None when no
+    booking date/time was supplied to check against (unknown either way)."""
+    return {
+        "id": row["id"],
+        "full_name": row["full_name"],
+        "experience_level": row["experience_level"],
+        "years_experience": row["years_experience"],
+        "availability": row["availability"],
+        "nationality": row.get("nationality") or "",
+        "profile_gender": GENDER_LABELS.get(row.get("profile_gender") or "", row.get("profile_gender") or ""),
+        "profile_race": RACE_LABELS.get(row.get("profile_race") or "", row.get("profile_race") or ""),
+        "profile_age": row.get("profile_age") or "",
+        "rating": round(row["rating"], 1) if row.get("rating") else None,
+        "has_photo": bool(row.get("selfie_data")),
+        "photo_url": f"/api/babysitters/{row['id']}/photo" if row.get("selfie_data") else None,
+        "available": available,
+    }
+
+
 def validate_document_fields(data_b64: str, mimetype: str, filename: str, label: str, allowed_mimetypes=None) -> None:
     """Validate a base64-encoded document upload sent inline with a
     registration/booking payload. Raises ValueError with a friendly message."""
@@ -486,6 +535,9 @@ class SitterRegistration(BaseModel):
     reference_email: str
     reference_affidavit_consent: bool
     availability: str = Field(min_length=2, max_length=300)
+    profile_gender: str = Field(min_length=1, max_length=30)
+    profile_race: str = Field(min_length=1, max_length=30)
+    profile_age: int = Field(ge=18, le=80)
     paystack_email: str
     smile_id_consent: bool
     bank_name: Optional[str] = ""
@@ -526,20 +578,36 @@ class SitterRegistration(BaseModel):
 
     @model_validator(mode="after")
     def check_id_fields(self):
+        if not (self.nationality or "").strip():
+            raise ValueError("nationality is required")
         if self.id_type == "passport":
             missing = [
-                name for name in ("passport_number", "nationality", "work_permit_number", "work_permit_expiry")
+                name for name in ("passport_number", "work_permit_number", "work_permit_expiry")
                 if not (getattr(self, name) or "").strip()
             ]
             if missing:
                 raise ValueError(
-                    "passport, nationality, and a valid work permit number + expiry date are required for "
+                    "passport and a valid work permit number + expiry date are required for "
                     "non-South African freelance babysitters to stay compliant with SA immigration law"
                 )
         else:
             if len((self.id_number or "").strip()) < 5:
                 raise ValueError("a valid South African ID number (at least 5 characters) is required")
         return self
+
+    @field_validator("profile_gender")
+    @classmethod
+    def check_profile_gender(cls, v):
+        if v not in GENDER_LABELS:
+            raise ValueError("please select a gender option")
+        return v
+
+    @field_validator("profile_race")
+    @classmethod
+    def check_profile_race(cls, v):
+        if v not in RACE_LABELS:
+            raise ValueError("please select a race/ethnicity option")
+        return v
 
     @field_validator("proof_of_address_confirmed")
     @classmethod
@@ -606,6 +674,12 @@ class BookingRequest(BaseModel):
     hourly_rate: float = Field(gt=0)
     duration_hours: float = Field(gt=0)
     special_instructions: Optional[str] = ""
+    has_pets: bool = False
+    pet_type: Optional[str] = Field(default="", max_length=200)
+    special_bath_baby: bool = False
+    special_feed_baby: bool = False
+    special_precautions: Optional[str] = Field(default="", max_length=1000)
+    preferred_sitter_id: Optional[int] = None
     agreed_terms: bool
     id_document_data: str = Field(default="")
     id_document_filename: str = Field(default="")
@@ -617,6 +691,12 @@ class BookingRequest(BaseModel):
     selfie_filename: str = Field(default="")
     selfie_mimetype: str = Field(default="")
     liveness_images: list = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def check_pet_type(self):
+        if self.has_pets and not (self.pet_type or "").strip():
+            raise ValueError("please tell us what type of pet(s) you have")
+        return self
 
     @field_validator("level")
     @classmethod
@@ -852,8 +932,9 @@ def register_sitter(payload: SitterRegistration):
          id_document_data, id_document_filename, id_document_mimetype,
          proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype,
          selfie_data, selfie_filename, selfie_mimetype, liveness_images_json,
-         police_clearance_data, police_clearance_filename, police_clearance_mimetype)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         police_clearance_data, police_clearance_filename, police_clearance_mimetype,
+         profile_gender, profile_race, profile_age)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             payload.full_name, payload.id_type, payload.id_number, payload.passport_number,
             payload.nationality, payload.work_permit_number, payload.work_permit_expiry,
@@ -870,6 +951,7 @@ def register_sitter(payload: SitterRegistration):
             payload.proof_of_address_data, payload.proof_of_address_filename, payload.proof_of_address_mimetype,
             payload.selfie_data, payload.selfie_filename, payload.selfie_mimetype, liveness_json,
             payload.police_clearance_data, payload.police_clearance_filename, payload.police_clearance_mimetype,
+            payload.profile_gender, payload.profile_race, str(payload.profile_age),
         ),
     )
     db.commit()
@@ -900,6 +982,12 @@ def create_booking(payload: BookingRequest):
     quote = compute_rate_check(payload.level, payload.rate_type, payload.hourly_rate, payload.duration_hours)
     ref = gen_booking_ref()
     pin = gen_pin()
+    if payload.preferred_sitter_id is not None:
+        row = db.execute(
+            "SELECT id FROM babysitters WHERE id = ? AND verified = 1", (payload.preferred_sitter_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=400, detail="the preferred babysitter you selected is no longer available")
     emailed = send_contract_email(payload.email, payload.parent_name, "family")
     liveness_json = json.dumps(payload.liveness_images)
     cur = db.execute(
@@ -911,8 +999,10 @@ def create_booking(payload: BookingRequest):
          agreed_terms, contract_sent, created_at,
          id_document_data, id_document_filename, id_document_mimetype,
          proof_of_address_data, proof_of_address_filename, proof_of_address_mimetype,
-         selfie_data, selfie_filename, selfie_mimetype, liveness_images_json)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+         selfie_data, selfie_filename, selfie_mimetype, liveness_images_json,
+         has_pets, pet_type, special_bath_baby, special_feed_baby, special_precautions,
+         preferred_sitter_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             ref, pin, payload.parent_name, payload.id_type, payload.id_number,
             payload.passport_number, payload.nationality, payload.phone, payload.email,
@@ -924,6 +1014,8 @@ def create_booking(payload: BookingRequest):
             payload.id_document_data, payload.id_document_filename, payload.id_document_mimetype,
             payload.proof_of_address_data, payload.proof_of_address_filename, payload.proof_of_address_mimetype,
             payload.selfie_data, payload.selfie_filename, payload.selfie_mimetype, liveness_json,
+            int(payload.has_pets), payload.pet_type, int(payload.special_bath_baby),
+            int(payload.special_feed_baby), payload.special_precautions, payload.preferred_sitter_id,
         ),
     )
     db.commit()
@@ -1087,11 +1179,47 @@ class AdminSitterVerifyRequest(BaseModel):
     smile_id_verified: bool = False
     registration_fee_paid: bool = False
     admin_notes: Optional[str] = ""
+    rating: Optional[float] = None
+    # Optional admin backfill for sitters who registered before the public
+    # profile fields existed. Left unset (None) means "don't change".
+    profile_gender: Optional[str] = None
+    profile_race: Optional[str] = None
+    profile_age: Optional[int] = None
+
+    @field_validator("rating")
+    @classmethod
+    def check_rating(cls, v):
+        if v is not None and not (0 <= v <= 5):
+            raise ValueError("rating must be between 0 and 5")
+        return v
+
+    @field_validator("profile_gender")
+    @classmethod
+    def check_admin_profile_gender(cls, v):
+        if v is not None and v != "" and v not in GENDER_LABELS:
+            raise ValueError("profile_gender must be one of: " + ", ".join(GENDER_LABELS))
+        return v
+
+    @field_validator("profile_race")
+    @classmethod
+    def check_admin_profile_race(cls, v):
+        if v is not None and v != "" and v not in RACE_LABELS:
+            raise ValueError("profile_race must be one of: " + ", ".join(RACE_LABELS))
+        return v
+
+    @field_validator("profile_age")
+    @classmethod
+    def check_admin_profile_age(cls, v):
+        if v is not None and not (18 <= v <= 80):
+            raise ValueError("profile_age must be between 18 and 80")
+        return v
 
 
 @app.post("/api/admin/sitters/{sitter_id}/verify")
 def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin_ok: bool = Depends(require_admin)):
-    row = db.execute("SELECT id FROM babysitters WHERE id = ?", (sitter_id,)).fetchone()
+    row = db.execute(
+        "SELECT id, rating, profile_gender, profile_race, profile_age FROM babysitters WHERE id = ?", (sitter_id,)
+    ).fetchone()
     if not row:
         raise HTTPException(404, "Sitter not found.")
     verified = (
@@ -1099,18 +1227,78 @@ def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin
         and payload.reference_verified and payload.smile_id_verified
     )
     status = "verified" if verified else "pending_verification"
+    rating = payload.rating if payload.rating is not None else row["rating"]
+    # Admin can backfill the public profile fields for sitters who registered
+    # before these existed (e.g. earlier test/real signups) — only overwrite
+    # when a non-empty value is explicitly sent.
+    profile_gender = payload.profile_gender if payload.profile_gender else row["profile_gender"]
+    profile_race = payload.profile_race if payload.profile_race else row["profile_race"]
+    profile_age = str(payload.profile_age) if payload.profile_age else row["profile_age"]
     db.execute(
         """UPDATE babysitters SET id_doc_verified=?, proof_of_address_verified=?, reference_verified=?,
-        smile_id_verified=?, registration_fee_paid=?, verified=?, status=?, admin_notes=? WHERE id=?""",
+        smile_id_verified=?, registration_fee_paid=?, verified=?, status=?, admin_notes=?, rating=?,
+        profile_gender=?, profile_race=?, profile_age=? WHERE id=?""",
         (
             int(payload.id_doc_verified), int(payload.proof_of_address_verified),
             int(payload.reference_verified), int(payload.smile_id_verified),
             int(payload.registration_fee_paid),
-            int(verified), status, payload.admin_notes or "", sitter_id,
+            int(verified), status, payload.admin_notes or "", rating,
+            profile_gender, profile_race, profile_age, sitter_id,
         ),
     )
     db.commit()
-    return {"id": sitter_id, "verified": verified, "status": status}
+    return {"id": sitter_id, "verified": verified, "status": status, "rating": rating}
+
+
+@app.get("/api/babysitters/public")
+def list_public_babysitters(date: Optional[str] = None, start_time: Optional[str] = None, duration_hours: Optional[float] = None):
+    """Families browse verified, identity-checked babysitters. If a booking
+    date/time/duration is supplied, each sitter is flagged available or not
+    for that specific slot (checked against their marked-unavailable dates
+    and any clashing accepted bookings) so families can see who's free
+    before picking a preference — admin still makes the final assignment."""
+    rows = [dict(r) for r in db.execute(
+        "SELECT * FROM babysitters WHERE verified = 1 ORDER BY rating DESC, created_at ASC"
+    ).fetchall()]
+    window = None
+    if date and start_time and duration_hours:
+        try:
+            window = booking_window(date, start_time, float(duration_hours))
+        except Exception:
+            window = None
+    profiles = []
+    for r in rows:
+        available = None
+        if date:
+            unavailable_dates = set(d for d in (r.get("unavailable_dates") or "").split(",") if d)
+            available = date not in unavailable_dates
+            if available and window:
+                clash = db.execute(
+                    """SELECT booking_date, start_time, duration_hours FROM bookings
+                    WHERE assigned_sitter_id = ? AND booking_date = ? AND status IN ('accepted','pending_match')""",
+                    (r["id"], date),
+                ).fetchall()
+                for c in clash:
+                    try:
+                        other = booking_window(c["booking_date"], c["start_time"], c["duration_hours"])
+                    except Exception:
+                        continue
+                    if window[0] < other[1] and other[0] < window[1]:
+                        available = False
+                        break
+        profiles.append(sitter_public_profile(r, available))
+    return {"babysitters": profiles}
+
+
+@app.get("/api/babysitters/{sitter_id}/photo")
+def babysitter_public_photo(sitter_id: int):
+    row = db.execute(
+        "SELECT selfie_data, selfie_mimetype, verified FROM babysitters WHERE id = ?", (sitter_id,)
+    ).fetchone()
+    if not row or not row["verified"] or not row["selfie_data"]:
+        raise HTTPException(404, "No profile photo available.")
+    raw = base64.b64decode(row["selfie_data"])
+    return Response(content=raw, media_type=row["selfie_mimetype"] or "image/jpeg")
 
 
 @app.get("/api/admin/bookings")
@@ -1122,6 +1310,8 @@ def admin_list_bookings(admin_ok: bool = Depends(require_admin)):
     for r in rows:
         sid = r.get("assigned_sitter_id")
         r["assigned_sitter"] = sitters.get(sid) if sid else None
+        psid = r.get("preferred_sitter_id")
+        r["preferred_sitter"] = sitters.get(psid) if psid else None
         strip_document_blobs(r)
     return {"bookings": rows}
 
@@ -1244,6 +1434,86 @@ def admin_unassign_sitter(booking_id: int, admin_ok: bool = Depends(require_admi
     )
     db.commit()
     return {"id": booking_id}
+
+
+class AdminManualBookingRequest(BaseModel):
+    """For when admin needs to capture a booking directly — e.g. a phone-in
+    request, or the family-facing system is temporarily unavailable. Skips
+    the family's own document/selfie verification steps since admin is
+    entering this by hand, but still records all the same scheduling, pet,
+    and special-request details."""
+    parent_name: str = Field(min_length=2, max_length=120)
+    phone: str = Field(min_length=7, max_length=20)
+    email: Optional[str] = ""
+    address: str = Field(min_length=5, max_length=300)
+    children_count: str = Field(min_length=1, max_length=20)
+    booking_date: str
+    start_time: str
+    rate_type: str
+    level: str
+    hourly_rate: float = Field(gt=0)
+    duration_hours: float = Field(gt=0)
+    special_instructions: Optional[str] = ""
+    has_pets: bool = False
+    pet_type: Optional[str] = ""
+    special_bath_baby: bool = False
+    special_feed_baby: bool = False
+    special_precautions: Optional[str] = ""
+    assign_sitter_id: Optional[int] = None
+    admin_notes: Optional[str] = ""
+
+    @field_validator("level")
+    @classmethod
+    def check_level(cls, v):
+        if v not in LEVELS:
+            raise ValueError("level must be 1, 2, 3 or 4")
+        return v
+
+    @field_validator("rate_type")
+    @classmethod
+    def check_rate_type(cls, v):
+        if v not in RATE_TYPES:
+            raise ValueError("rate_type must be 'day' or 'overnight'")
+        return v
+
+
+@app.post("/api/admin/bookings/manual", status_code=201)
+def admin_create_manual_booking(payload: AdminManualBookingRequest, admin_ok: bool = Depends(require_admin)):
+    quote = compute_rate_check(payload.level, payload.rate_type, payload.hourly_rate, payload.duration_hours)
+    ref = gen_booking_ref()
+    pin = gen_pin()
+    assigned_id = None
+    status = "pending_match"
+    if payload.assign_sitter_id is not None:
+        sitter = db.execute("SELECT id FROM babysitters WHERE id = ?", (payload.assign_sitter_id,)).fetchone()
+        if not sitter:
+            raise HTTPException(400, "Selected babysitter not found.")
+        assigned_id = payload.assign_sitter_id
+        status = "assigned"
+    emailed = send_contract_email(payload.email, payload.parent_name, "family") if (payload.email or "").strip() else False
+    cur = db.execute(
+        """INSERT INTO bookings
+        (booking_ref, pin, parent_name, id_number, phone, email, address, children_count,
+         booking_date, start_time, rate_type, level, hourly_rate, duration_hours,
+         special_instructions, status, agreed_terms, contract_sent, created_at,
+         has_pets, pet_type, special_bath_baby, special_feed_baby, special_precautions,
+         assigned_sitter_id, sitter_response, created_by_admin, admin_notes)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            ref, pin, payload.parent_name, "", payload.phone, payload.email or "", payload.address,
+            payload.children_count, payload.booking_date, payload.start_time, payload.rate_type,
+            payload.level, quote["applied_hourly_rate"], payload.duration_hours,
+            payload.special_instructions, status, 1, int(emailed), now_iso(),
+            int(payload.has_pets), payload.pet_type, int(payload.special_bath_baby),
+            int(payload.special_feed_baby), payload.special_precautions,
+            assigned_id, "pending" if assigned_id else "", 1, payload.admin_notes or "",
+        ),
+    )
+    db.commit()
+    return {
+        "id": cur.lastrowid, "booking_ref": ref, "pin": pin, "status": status,
+        "assigned_sitter_id": assigned_id, "quote": quote,
+    }
 
 
 # ---------------------------------------------------------------------------

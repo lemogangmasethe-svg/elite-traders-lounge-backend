@@ -207,8 +207,17 @@ if USE_POSTGRES:
         placeholders to "%s" and emulating INSERT ... lastrowid via
         RETURNING id for the tables that need it."""
 
-        def __init__(self, conn):
-            self._conn = conn
+        def __init__(self, dsn):
+            self._dsn = dsn
+            self._conn = psycopg2.connect(dsn)
+
+        def _live_conn(self):
+            # Neon (and other managed Postgres) can drop idle connections.
+            # Reconnect transparently instead of failing every request
+            # until the process is restarted.
+            if self._conn.closed:
+                self._conn = psycopg2.connect(self._dsn)
+            return self._conn
 
         def execute(self, sql, params=()):
             pg_sql = sql.replace("?", "%s")
@@ -217,8 +226,24 @@ if USE_POSTGRES:
             ) and "RETURNING" not in pg_sql.upper()
             if needs_id:
                 pg_sql += " RETURNING id"
-            cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute(pg_sql, params)
+            try:
+                cur = self._live_conn().cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute(pg_sql, params)
+            except (psycopg2.OperationalError, psycopg2.InterfaceError):
+                # Connection was dropped mid-request (e.g. idle timeout) —
+                # reconnect once and retry before giving up.
+                self._conn = psycopg2.connect(self._dsn)
+                cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute(pg_sql, params)
+            except psycopg2.Error:
+                # A prior statement failed and left this shared connection's
+                # transaction aborted — roll back so later requests aren't
+                # permanently stuck rejecting every query.
+                try:
+                    self._conn.rollback()
+                except Exception:
+                    pass
+                raise
             lastrowid = None
             if needs_id:
                 row = cur.fetchone()
@@ -236,8 +261,7 @@ if USE_POSTGRES:
             self._conn.close()
 
     def get_db():
-        conn = psycopg2.connect(DATABASE_URL)
-        return _PgConn(conn)
+        return _PgConn(DATABASE_URL)
 
 else:
     def get_db():

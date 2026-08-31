@@ -153,10 +153,17 @@
     if (sitter.profile_age) details.push(sitter.profile_age + ' yrs');
     if (sitter.nationality) details.push(sitter.nationality);
     if (sitter.profile_race) details.push(RACE_LABELS[sitter.profile_race] || sitter.profile_race);
+    if (sitter.town) details.push(sitter.town);
     var ratingHtml = sitter.rating ? ('<span class="sitter-card__rating">\u2605 ' + sitter.rating.toFixed(1) + '</span>') : '<span class="sitter-card__rating sitter-card__rating--none">Not yet rated</span>';
     var availHtml = sitter.available === false
       ? '<span class="badge-verified badge-verified--pending">Unavailable for this slot</span>'
       : '<span class="badge-verified">Available</span>';
+    var distanceHtml = '';
+    if (typeof sitter.distance_km === 'number') {
+      distanceHtml = sitter.is_local
+        ? '<span class="badge-verified">' + sitter.distance_km + 'km away \u00b7 Local</span>'
+        : '<span class="badge-verified badge-verified--pending">' + sitter.distance_km + 'km away \u00b7 Outside 40km area</span>';
+    }
     var photoHtml = sitter.has_photo
       ? '<img src="' + API_ORIGIN + sitter.photo_url + '" alt="' + sitter.full_name + '" class="sitter-card__photo" />'
       : '<div class="sitter-card__photo sitter-card__photo--placeholder">' + (sitter.full_name ? sitter.full_name.charAt(0) : '?') + '</div>';
@@ -166,7 +173,7 @@
       '<div class="sitter-card__body">' +
         '<strong>' + sitter.full_name + '</strong>' +
         '<span class="sitter-card__meta">' + details.join(' \u00b7 ') + '</span>' +
-        '<span class="sitter-card__badges">' + ratingHtml + ' ' + availHtml + '</span>' +
+        '<span class="sitter-card__badges">' + ratingHtml + ' ' + availHtml + ' ' + distanceHtml + '</span>' +
       '</div>';
     return label;
   }
@@ -178,6 +185,8 @@
       if (form.booking_date.value) params.set('date', form.booking_date.value);
       if (form.start_time.value) params.set('start_time', form.start_time.value);
       if (durationInput.value) params.set('duration_hours', durationInput.value);
+      if (form.town && form.town.value.trim()) params.set('town', form.town.value.trim());
+      if (form.province && form.province.value.trim()) params.set('province', form.province.value.trim());
       var query = params.toString();
       var result = await window.ETL_API.get('/api/babysitters/public' + (query ? '?' + query : ''));
       var sitters = (result && result.babysitters) || [];
@@ -206,6 +215,39 @@
   });
   if (durationInput) durationInput.addEventListener('change', loadSitterBrowse);
   loadSitterBrowse();
+
+  // Coverage check: families must be able to see, before or during booking,
+  // whether a verified babysitter can actually reach their town within our
+  // 40km local service area.
+  var coverageResult = document.getElementById('coverage-result');
+  var coverageTimer = null;
+  function checkCoverage() {
+    if (!coverageResult) return;
+    var town = form.town ? form.town.value.trim() : '';
+    var province = form.province ? form.province.value.trim() : '';
+    if (!town) { coverageResult.hidden = true; return; }
+    if (coverageTimer) clearTimeout(coverageTimer);
+    coverageTimer = setTimeout(async function () {
+      try {
+        var params = new URLSearchParams({ town: town });
+        if (province) params.set('province', province);
+        var res = await window.ETL_API.get('/api/coverage-check?' + params.toString());
+        coverageResult.hidden = false;
+        if (res.covered) {
+          coverageResult.className = 'alert alert--success';
+          coverageResult.textContent = '\u2705 ' + res.message;
+        } else {
+          coverageResult.className = 'alert alert--warning';
+          coverageResult.textContent = '\u26a0\ufe0f ' + res.message;
+        }
+      } catch (err) {
+        coverageResult.hidden = true;
+      }
+      loadSitterBrowse();
+    }, 500);
+  }
+  if (form.town) form.town.addEventListener('blur', checkCoverage);
+  if (form.province) form.province.addEventListener('change', checkCoverage);
 
 
   function rateType() {
@@ -337,6 +379,8 @@
         phone: form.phone.value.trim(),
         email: form.email.value.trim(),
         address: form.address.value.trim(),
+        town: form.town.value.trim(),
+        province: form.province.value.trim(),
         children_count: form.children_count.value.trim(),
         proof_of_address_type: form.proof_of_address_type.value,
         proof_of_address_confirmed: form.proof_of_address_confirmed.checked,

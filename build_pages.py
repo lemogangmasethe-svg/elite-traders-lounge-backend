@@ -517,6 +517,28 @@ REGISTER_BODY = '''
               <label for="address">Home address</label>
               <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
             </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="town">Town / suburb</label>
+                <input type="text" id="town" name="town" autocomplete="address-level2" required minlength="2" maxlength="80" placeholder="e.g. Modelpark" />
+              </div>
+              <div class="field">
+                <label for="province">Province</label>
+                <select id="province" name="province" required>
+                  <option value="">Select province</option>
+                  <option>Gauteng</option>
+                  <option>Mpumalanga</option>
+                  <option>Western Cape</option>
+                  <option>Eastern Cape</option>
+                  <option>KwaZulu-Natal</option>
+                  <option>Free State</option>
+                  <option>Limpopo</option>
+                  <option>North West</option>
+                  <option>Northern Cape</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-section__hint">This tells families roughly where you're based so we can match you with bookings within a practical, local travel distance (our 40km service-area policy) &mdash; we never show your exact street address to families.</div>
           </div>
 
           <div class="form-section">
@@ -827,6 +849,30 @@ BOOK_BODY = '''
                 <input type="text" id="children_count" name="children_count" required minlength="1" maxlength="20" placeholder="e.g. 2 children, ages 3 and 6" />
               </div>
             </div>
+
+            <div class="field-grid">
+              <div class="field">
+                <label for="town">Town / suburb</label>
+                <input type="text" id="town" name="town" autocomplete="address-level2" required minlength="2" maxlength="80" placeholder="e.g. Sandton" />
+              </div>
+              <div class="field">
+                <label for="province">Province</label>
+                <select id="province" name="province" required>
+                  <option value="">Select province</option>
+                  <option>Gauteng</option>
+                  <option>Mpumalanga</option>
+                  <option>Western Cape</option>
+                  <option>Eastern Cape</option>
+                  <option>KwaZulu-Natal</option>
+                  <option>Free State</option>
+                  <option>Limpopo</option>
+                  <option>North West</option>
+                  <option>Northern Cape</option>
+                </select>
+              </div>
+            </div>
+            <div id="coverage-result" class="alert" hidden></div>
+            <div class="form-section__hint">We can only confirm bookings where a verified babysitter can reach you within our 40km local service area &mdash; see our <a href="./terms.html">terms</a>. We'll check this automatically once you enter your town above.</div>
 
             <div class="field">
               <label>Do you have any pets at home?</label>
@@ -1347,14 +1393,15 @@ TERMS_BODY = '''
         <a href="#eligibility">2. Eligibility &amp; identity verification</a>
         <a href="#proof-of-address">3. Proof of address</a>
         <a href="#reference-affidavit">4. Reference &amp; affidavit</a>
-        <a href="#payments">5. Payments (Paystack)</a>
-        <a href="#contracts">6. Individual contracts &amp; delivery</a>
-        <a href="#conduct-terms">7. Platform role &amp; conduct</a>
-        <a href="#suspension">8. Right to refuse or cancel service</a>
-        <a href="#liability">9. Limitation of liability</a>
-        <a href="#changes">10. Changes to these terms</a>
-        <a href="#governing-law">11. Governing law</a>
-        <a href="#contact-terms">12. Contact</a>
+        <a href="#service-area-terms">5. Local service area (40km radius)</a>
+        <a href="#payments">6. Payments (Paystack)</a>
+        <a href="#contracts">7. Individual contracts &amp; delivery</a>
+        <a href="#conduct-terms">8. Platform role &amp; conduct</a>
+        <a href="#suspension">9. Right to refuse or cancel service</a>
+        <a href="#liability">10. Limitation of liability</a>
+        <a href="#changes">11. Changes to these terms</a>
+        <a href="#governing-law">12. Governing law</a>
+        <a href="#contact-terms">13. Contact</a>
       </div>
 
       <div class="policy-section" id="acceptance">
@@ -1410,8 +1457,20 @@ TERMS_BODY = '''
         </div>
       </div>
 
+      <div class="policy-section" id="service-area-terms">
+        <h2>5. Local Service Area (40km Radius)</h2>
+        <ul>
+          <li>Elite Traders Lounge can only confirm a booking where a verified, active Babysitter is located within a <strong>40km travel radius</strong> of the Family's registered town or suburb ("local service area") &mdash; this is considered the practical distance a Babysitter can reasonably and safely travel to reach a booking.</li>
+          <li>Both Babysitters and Families must supply their town/suburb and province at registration or booking, so Elite Traders Lounge can calculate this distance. This is a mandatory condition of registration and booking, not an optional field.</li>
+          <li>Families are encouraged to check whether a verified Babysitter currently covers their area &mdash; using the "Check if we cover your area" tool on the website or the sitter list shown when booking &mdash; before completing registration or a booking request.</li>
+          <li>Where no verified Babysitter is within 40km of a Family's location, Elite Traders Lounge will decline the booking request and will contact the Family to discuss options, including the possibility of onboarding a Babysitter closer to them.</li>
+          <li>The list of towns currently covered by a verified Babysitter is shown on the website and updates automatically as new Babysitters register and complete verification &mdash; it is not a fixed or guaranteed list, and coverage may change over time as Babysitters join, leave, or update their status.</li>
+          <li>This policy exists solely to ensure a Babysitter can realistically and safely attend a booking; it does not limit a Babysitter's or Family's right to independently arrange care outside of the Elite Traders Lounge platform.</li>
+        </ul>
+      </div>
+
       <div class="policy-section" id="payments">
-        <h2>5. Payments (Paystack)</h2>
+        <h2>6. Payments (Paystack)</h2>
         <ul>
           <li>All booking payments are processed through <strong>Paystack</strong> using Paystack's Split Payment functionality. A Family's payment for a booking is made once, and Paystack automatically splits and pays the Babysitter's net share directly to the Babysitter's own Paystack account and Elite Traders Lounge's commission share directly to Elite Traders Lounge's own Paystack account, on the same transaction.</li>
           <li>Both Babysitters and Families must hold their own active Paystack account and supply the email address linked to that account at registration, so Elite Traders Lounge can confirm the account exists before enabling payouts or bookings.</li>
@@ -1423,7 +1482,7 @@ TERMS_BODY = '''
       </div>
 
       <div class="policy-section" id="contracts">
-        <h2>6. Individual Contracts &amp; Delivery</h2>
+        <h2>7. Individual Contracts &amp; Delivery</h2>
         <ul>
           <li>On successful registration, Elite Traders Lounge issues each Babysitter the current Babysitter Agreement and each Family the current Family Service Agreement by email to the address supplied, and makes a downloadable copy available from the confirmation screen.</li>
           <li>These individual contracts set out the specific rate band, commission, minimum-wage compliance, and cancellation terms that apply to that party, and incorporate these Terms &amp; Conditions and the <a href="./policies.html">Rates &amp; Policies</a> page by reference.</li>
@@ -1432,7 +1491,7 @@ TERMS_BODY = '''
       </div>
 
       <div class="policy-section" id="conduct-terms">
-        <h2>7. Platform Role &amp; Conduct</h2>
+        <h2>8. Platform Role &amp; Conduct</h2>
         <ul>
           <li>Elite Traders Lounge operates as a booking and verification platform connecting independent Babysitters with Families. Babysitters engage as independent contractors and are not employees of Elite Traders Lounge.</li>
           <li>Both parties must use the <a href="./checkin.html">dual-party check-in tool</a> to confirm arrival and departure at every booking; timestamps recorded there are treated as the primary evidence of hours worked in any dispute.</li>
@@ -1448,7 +1507,7 @@ TERMS_BODY = '''
       </div>
 
       <div class="policy-section" id="suspension">
-        <h2>8. Right to Refuse or Cancel Service</h2>
+        <h2>9. Right to Refuse or Cancel Service</h2>
         <div class="policy-callout"><strong>Disclaimer:</strong> Elite Traders Lounge reserves the right, at its sole discretion, to refuse, suspend, or cancel service to, and to decline to onboard or continue working with, any Babysitter or Family who:
           <ul style="margin-top: var(--space-3); margin-bottom: 0;">
             <li>provides false, forged, incomplete, or misleading identity, address, reference, work-permit, or Paystack account information;</li>
@@ -1462,27 +1521,27 @@ TERMS_BODY = '''
       </div>
 
       <div class="policy-section" id="liability">
-        <h2>9. Limitation of Liability</h2>
+        <h2>10. Limitation of Liability</h2>
         <ul>
           <li>Elite Traders Lounge verifies identity, proof of address, and references on a best-efforts basis but does not guarantee the conduct, performance, or suitability of any Babysitter or Family, and is not liable for any loss, injury, or damage arising from a booking arranged through the platform.</li>
-          <li>As set out in Section 7 above, Elite Traders Lounge is not liable for any harm, loss, or damage arising from a Babysitter administering medicine to a child, or from either party breaching the duties, pet-disclosure, or no-cleaning rules described there.</li>
+          <li>As set out in Section 8 above, Elite Traders Lounge is not liable for any harm, loss, or damage arising from a Babysitter administering medicine to a child, or from either party breaching the duties, pet-disclosure, or no-cleaning rules described there.</li>
           <li>Elite Traders Lounge is not a party to, and is not liable for, the processing, custody, or timing of payments handled by Paystack; any payment dispute involving Paystack is subject to Paystack's own terms and support channels.</li>
           <li>Nothing in these Terms excludes any liability that cannot lawfully be excluded under South African law.</li>
         </ul>
       </div>
 
       <div class="policy-section" id="changes">
-        <h2>10. Changes to These Terms</h2>
+        <h2>11. Changes to These Terms</h2>
         <p>Elite Traders Lounge may update these Terms &amp; Conditions, the Policies page, or Appendix C rate bands from time to time, including to reflect changes in the National Minimum Wage. Material changes will be posted on this page with an updated "last updated" date; continued use of the platform after changes take effect constitutes acceptance of the revised terms.</p>
       </div>
 
       <div class="policy-section" id="governing-law">
-        <h2>11. Governing Law</h2>
+        <h2>12. Governing Law</h2>
         <p>These Terms are governed by the laws of the Republic of South Africa, including the Protection of Personal Information Act (POPIA), the Basic Conditions of Employment Act, and the Immigration Act 13 of 2002. The courts of South Africa have jurisdiction over any dispute not resolved through the process described on the <a href="./policies.html#disputes">Policies page</a>.</p>
       </div>
 
       <div class="policy-section" id="contact-terms">
-        <h2>12. Contact</h2>
+        <h2>13. Contact</h2>
         <p>Questions about these Terms &amp; Conditions can be sent to <a href="mailto:lemo.masethe@elitetraders.co.za">lemo.masethe@elitetraders.co.za</a> or <a href="tel:+27814270419">+27 81 427 0419</a>. Elite Traders Lounge, registration number K2017318876, 4017 Alek Mampana Street, Extension 7, Kwa-Guqa, Mpumalanga, 1039.</p>
       </div>
 

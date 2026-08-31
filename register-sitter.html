@@ -156,6 +156,28 @@
               <label for="address">Home address</label>
               <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
             </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="town">Town / suburb</label>
+                <input type="text" id="town" name="town" autocomplete="address-level2" required minlength="2" maxlength="80" placeholder="e.g. Modelpark" />
+              </div>
+              <div class="field">
+                <label for="province">Province</label>
+                <select id="province" name="province" required>
+                  <option value="">Select province</option>
+                  <option>Gauteng</option>
+                  <option>Mpumalanga</option>
+                  <option>Western Cape</option>
+                  <option>Eastern Cape</option>
+                  <option>KwaZulu-Natal</option>
+                  <option>Free State</option>
+                  <option>Limpopo</option>
+                  <option>North West</option>
+                  <option>Northern Cape</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-section__hint">This tells families roughly where you're based so we can match you with bookings within a practical, local travel distance (our 40km service-area policy) &mdash; we never show your exact street address to families.</div>
           </div>
 
           <div class="form-section">

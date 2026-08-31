@@ -9,6 +9,7 @@ Runs on port 8000 inside the sandbox.
 """
 import base64
 import json
+import math
 import os
 import random
 import re
@@ -21,6 +22,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Optional
 
+import requests
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -110,6 +112,12 @@ CREATE TABLE IF NOT EXISTS partner_inquiries (
     city TEXT NOT NULL DEFAULT '',
     message TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS geocode_cache (
+    query TEXT PRIMARY KEY,
+    lat REAL NOT NULL,
+    lon REAL NOT NULL
 );
 """
 
@@ -239,6 +247,19 @@ MIGRATION_COLUMNS = [
     ("babysitters", "verification_issued_date", "TEXT NOT NULL DEFAULT ''"),
     ("babysitters", "fee_paid_at", "TEXT NOT NULL DEFAULT ''"),
     ("bookings", "fee_paid_at", "TEXT NOT NULL DEFAULT ''"),
+    # Location: town/suburb + province the sitter lives in or the family
+    # needs care at, plus a geocoded lat/lon so we can calculate real
+    # distance and enforce our 40km local service-area rule. lat/lon are
+    # nullable — best-effort geocoding must never block a registration or
+    # booking on its own.
+    ("babysitters", "town", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "province", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "lat", "REAL"),
+    ("babysitters", "lon", "REAL"),
+    ("bookings", "town", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "province", "TEXT NOT NULL DEFAULT ''"),
+    ("bookings", "lat", "REAL"),
+    ("bookings", "lon", "REAL"),
 ]
 
 # Document upload constants — used by /api/sitter/documents and
@@ -335,8 +356,21 @@ if USE_POSTGRES:
             return _PgCursor(cur, lastrowid=lastrowid)
 
         def executescript(self, script):
-            # Schema is provisioned separately (via migration) in Postgres.
-            pass
+            # Translate the SQLite CREATE TABLE statements to Postgres syntax
+            # and run each one so new tables are provisioned automatically —
+            # avoids tables silently not existing in production until someone
+            # remembers to create them by hand on Neon.
+            pg_script = script.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+            statements = [s.strip() for s in pg_script.split(";") if s.strip()]
+            conn = self._live_conn()
+            cur = conn.cursor()
+            for stmt in statements:
+                try:
+                    cur.execute(stmt)
+                except Exception:
+                    conn.rollback()
+                else:
+                    conn.commit()
 
         def commit(self):
             self._conn.commit()
@@ -355,10 +389,96 @@ else:
 
 
 db = get_db()
-if not USE_POSTGRES:
-    db.executescript(SCHEMA_SQL)
-    db.commit()
+db.executescript(SCHEMA_SQL)
+db.commit()
 run_migrations(db)
+
+
+# ---------------------------------------------------------------------------
+# Location: turn a town/suburb name into map coordinates (geocoding), work
+# out real driving-line distance between two points, and enforce a 40km
+# "local service area" so we never promise a family a babysitter who can't
+# realistically reach them. Geocoding uses the free OpenStreetMap Nominatim
+# service — no account or API key needed. Results are cached in the
+# geocode_cache table so we never look up the same town twice.
+# ---------------------------------------------------------------------------
+LOCAL_RADIUS_KM = 40
+GEOCODE_TIMEOUT_SECONDS = 6
+
+
+def geocode_place(town: str, province: str = "") -> Optional[tuple]:
+    """Best-effort lookup of (lat, lon) for a South African town/suburb.
+    Returns None if the place can't be found or the lookup fails for any
+    reason — callers must treat that as "location unknown", never as a
+    hard error, so a slow/unreachable geocoding service never blocks a
+    family or sitter from registering."""
+    parts = [p.strip() for p in (town, province, "South Africa") if p and p.strip()]
+    query = ", ".join(parts)
+    if not query or query == "South Africa":
+        return None
+    cache_key = query.lower()
+    try:
+        row = db.execute("SELECT lat, lon FROM geocode_cache WHERE query = ?", (cache_key,)).fetchone()
+        if row:
+            return (row["lat"], row["lon"])
+    except Exception:
+        pass
+    try:
+        resp = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": query, "format": "json", "limit": 1, "countrycodes": "za"},
+            headers={"User-Agent": "EliteTradersLounge/1.0 (lemo.masethe@elitetraders.co.za)"},
+            timeout=GEOCODE_TIMEOUT_SECONDS,
+        )
+        resp.raise_for_status()
+        results = resp.json()
+        if not results:
+            return None
+        lat, lon = float(results[0]["lat"]), float(results[0]["lon"])
+    except Exception:
+        return None
+    try:
+        db.execute("INSERT INTO geocode_cache (query, lat, lon) VALUES (?, ?, ?)", (cache_key, lat, lon))
+        db.commit()
+    except Exception:
+        pass
+    return (lat, lon)
+
+
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Straight-line distance in kilometres between two lat/lon points."""
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlambda / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(min(1.0, a)))
+
+
+def active_sitters_with_location():
+    """Verified babysitters, excluding those whose annual re-verification
+    has lapsed, who have a geocoded location on file."""
+    rows = [dict(r) for r in db.execute(
+        "SELECT id, full_name, town, province, lat, lon, verification_issued_date, created_at "
+        "FROM babysitters WHERE verified = 1 AND lat IS NOT NULL AND lon IS NOT NULL"
+    ).fetchall()]
+    return [
+        r for r in rows
+        if compute_verification_status(r.get("verification_issued_date", ""), r.get("created_at", "")).get(
+            "verification_status"
+        ) != "overdue"
+    ]
+
+
+def nearest_sitter_distance(lat: float, lon: float) -> Optional[dict]:
+    """Closest active, verified babysitter to a given point. Returns None
+    if no verified sitter has a geocoded location yet."""
+    best = None
+    for sitter in active_sitters_with_location():
+        dist = haversine_km(lat, lon, sitter["lat"], sitter["lon"])
+        if best is None or dist < best["distance_km"]:
+            best = {"distance_km": round(dist, 1), "sitter_id": sitter["id"], "town": sitter["town"]}
+    return best
 
 
 def gen_access_code() -> str:
@@ -437,17 +557,21 @@ RACE_LABELS = {
 }
 
 
-def sitter_public_profile(row: dict, available: Optional[bool] = None) -> dict:
+def sitter_public_profile(row: dict, available: Optional[bool] = None, distance_km: Optional[float] = None) -> dict:
     """Public-facing profile shown to families browsing verified babysitters.
     Never includes documents, contact details, or anything beyond what a
     family needs to choose a preferred sitter. `available` is None when no
-    booking date/time was supplied to check against (unknown either way)."""
+    booking date/time was supplied to check against (unknown either way).
+    `distance_km` is None unless the family's town was supplied and both
+    sides have a geocoded location — only the general town/suburb is shared,
+    never a full street address."""
     return {
         "id": row["id"],
         "full_name": row["full_name"],
         "experience_level": row["experience_level"],
         "years_experience": row["years_experience"],
         "availability": row["availability"],
+        "town": row.get("town") or "",
         "nationality": row.get("nationality") or "",
         "profile_gender": GENDER_LABELS.get(row.get("profile_gender") or "", row.get("profile_gender") or ""),
         "profile_race": RACE_LABELS.get(row.get("profile_race") or "", row.get("profile_race") or ""),
@@ -456,6 +580,8 @@ def sitter_public_profile(row: dict, available: Optional[bool] = None) -> dict:
         "has_photo": bool(row.get("selfie_data")),
         "photo_url": f"/api/babysitters/{row['id']}/photo" if row.get("selfie_data") else None,
         "available": available,
+        "distance_km": distance_km,
+        "is_local": (distance_km is not None and distance_km <= LOCAL_RADIUS_KM) if distance_km is not None else None,
         "verification_due_date": compute_verification_status(
             row.get("verification_issued_date", ""), row.get("created_at", "")
         ).get("verification_due_date", ""),
@@ -599,6 +725,8 @@ class SitterRegistration(BaseModel):
     phone: str = Field(min_length=7, max_length=20)
     email: str
     address: str = Field(min_length=5, max_length=300)
+    town: str = Field(min_length=2, max_length=80)
+    province: str = Field(min_length=2, max_length=40)
     proof_of_address_type: str = Field(min_length=2, max_length=60)
     proof_of_address_confirmed: bool
     experience_level: str
@@ -750,6 +878,8 @@ class BookingRequest(BaseModel):
     phone: str = Field(min_length=7, max_length=20)
     email: str
     address: str = Field(min_length=5, max_length=300)
+    town: str = Field(min_length=2, max_length=80)
+    province: str = Field(min_length=2, max_length=40)
     proof_of_address_type: str = Field(min_length=2, max_length=60)
     proof_of_address_confirmed: bool
     children_count: str = Field(min_length=1, max_length=20)
@@ -1074,10 +1204,12 @@ def register_sitter(payload: SitterRegistration):
     emailed = send_contract_email(payload.email, payload.full_name, "sitter")
     access_code = gen_access_code()
     liveness_json = json.dumps(payload.liveness_images)
+    geocoded = geocode_place(payload.town, payload.province)
+    lat, lon = geocoded if geocoded else (None, None)
     cur = db.execute(
         """INSERT INTO babysitters
         (full_name, id_type, id_number, passport_number, nationality, work_permit_number,
-         work_permit_expiry, phone, email, address, proof_of_address_type,
+         work_permit_expiry, phone, email, address, town, province, lat, lon, proof_of_address_type,
          proof_of_address_confirmed, experience_level, years_experience, certifications,
          references_text, availability, reference_name, reference_relationship,
          reference_phone, reference_email, reference_affidavit_consent, paystack_email,
@@ -1091,11 +1223,12 @@ def register_sitter(payload: SitterRegistration):
          foreign_police_clearance_data, foreign_police_clearance_filename, foreign_police_clearance_mimetype,
          verification_issued_date,
          profile_gender, profile_race, profile_age)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             payload.full_name, payload.id_type, payload.id_number, payload.passport_number,
             payload.nationality, payload.work_permit_number, payload.work_permit_expiry,
-            payload.phone, payload.email, payload.address, payload.proof_of_address_type,
+            payload.phone, payload.email, payload.address, payload.town, payload.province, lat, lon,
+            payload.proof_of_address_type,
             int(payload.proof_of_address_confirmed), payload.experience_level,
             payload.years_experience, payload.certifications,
             f"{payload.reference_name} ({payload.reference_relationship}) — {payload.reference_phone}, {payload.reference_email}",
@@ -1150,12 +1283,31 @@ def create_booking(payload: BookingRequest):
         ).fetchone()
         if not row:
             raise HTTPException(status_code=400, detail="the preferred babysitter you selected is no longer available")
+    # Local service-area rule: we only accept bookings where at least one
+    # verified, active babysitter is within LOCAL_RADIUS_KM — we can't
+    # promise a family a sitter who can't realistically travel to them. If
+    # we can't geocode the town at all, let the booking through rather than
+    # block a real family over a geocoding hiccup; admin can still review it.
+    geocoded = geocode_place(payload.town, payload.province)
+    lat, lon = geocoded if geocoded else (None, None)
+    if geocoded:
+        nearest = nearest_sitter_distance(lat, lon)
+        if nearest is None or nearest["distance_km"] > LOCAL_RADIUS_KM:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"We don't currently have a verified babysitter within {LOCAL_RADIUS_KM}km of "
+                    f"{payload.town.strip()} — Elite Traders Lounge can only confirm bookings in areas our "
+                    "babysitters can reach. Please contact us at lemo.masethe@elitetraders.co.za or "
+                    "081 427 0419 so we can look into registering a sitter closer to you."
+                ),
+            )
     emailed = send_contract_email(payload.email, payload.parent_name, "family")
     liveness_json = json.dumps(payload.liveness_images)
     cur = db.execute(
         """INSERT INTO bookings
         (booking_ref, pin, parent_name, id_type, id_number, passport_number, nationality,
-         phone, email, address, proof_of_address_type, proof_of_address_confirmed,
+         phone, email, address, town, province, lat, lon, proof_of_address_type, proof_of_address_confirmed,
          children_count, paystack_email, smile_id_consent, booking_date, start_time,
          rate_type, level, hourly_rate, duration_hours, special_instructions, status,
          agreed_terms, contract_sent, created_at,
@@ -1164,11 +1316,12 @@ def create_booking(payload: BookingRequest):
          selfie_data, selfie_filename, selfie_mimetype, liveness_images_json,
          has_pets, pet_type, special_bath_baby, special_feed_baby, special_precautions,
          preferred_sitter_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             ref, pin, payload.parent_name, payload.id_type, payload.id_number,
             payload.passport_number, payload.nationality, payload.phone, payload.email,
-            payload.address, payload.proof_of_address_type, int(payload.proof_of_address_confirmed),
+            payload.address, payload.town, payload.province, lat, lon,
+            payload.proof_of_address_type, int(payload.proof_of_address_confirmed),
             payload.children_count, payload.paystack_email, int(payload.smile_id_consent),
             payload.booking_date, payload.start_time, payload.rate_type, payload.level,
             quote["applied_hourly_rate"], payload.duration_hours, payload.special_instructions,
@@ -1435,18 +1588,26 @@ def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin
 
 
 @app.get("/api/babysitters/public")
-def list_public_babysitters(date: Optional[str] = None, start_time: Optional[str] = None, duration_hours: Optional[float] = None):
+def list_public_babysitters(
+    date: Optional[str] = None, start_time: Optional[str] = None, duration_hours: Optional[float] = None,
+    town: Optional[str] = None, province: Optional[str] = None,
+):
     """Families browse verified, identity-checked babysitters. If a booking
     date/time/duration is supplied, each sitter is flagged available or not
     for that specific slot (checked against their marked-unavailable dates
     and any clashing accepted bookings) so families can see who's free
     before picking a preference — admin still makes the final assignment.
 
+    If a family town is supplied, each sitter's real distance from that
+    town is calculated and the list is sorted closest-first so families
+    naturally see practical, local matches ahead of far-away ones.
+
     Safety gate: a sitter whose annual police clearance / Child Protection
     Register re-verification has lapsed (more than 12 months since it was
     last accepted) is left out of this list even if the old `verified` flag
     is still set to 1 in the database — families should never be shown a
     sitter as verified once their clearance documents are out of date."""
+    family_location = geocode_place(town, province) if town else None
     rows = [dict(r) for r in db.execute(
         "SELECT * FROM babysitters WHERE verified = 1 ORDER BY rating DESC, created_at ASC"
     ).fetchall()]
@@ -1482,8 +1643,66 @@ def list_public_babysitters(date: Optional[str] = None, start_time: Optional[str
                     if window[0] < other[1] and other[0] < window[1]:
                         available = False
                         break
-        profiles.append(sitter_public_profile(r, available))
-    return {"babysitters": profiles}
+        distance_km = None
+        if family_location and r.get("lat") is not None and r.get("lon") is not None:
+            distance_km = round(haversine_km(family_location[0], family_location[1], r["lat"], r["lon"]), 1)
+        profiles.append(sitter_public_profile(r, available, distance_km))
+    if family_location:
+        profiles.sort(key=lambda p: (p["distance_km"] is None, p["distance_km"] if p["distance_km"] is not None else 0))
+    return {"babysitters": profiles, "local_radius_km": LOCAL_RADIUS_KM}
+
+
+@app.get("/api/coverage-check")
+def coverage_check(town: str, province: Optional[str] = None):
+    """Public, no-signup way for a family to check — before filling in a
+    full registration or booking — whether we currently have a verified
+    babysitter within our 40km local service area of their town. Powers
+    the "Check if we cover your area" box on the website."""
+    location = geocode_place(town, province)
+    if not location:
+        return {
+            "town": town, "resolved": False, "covered": None, "nearest_km": None,
+            "local_radius_km": LOCAL_RADIUS_KM,
+            "message": "We couldn't recognise that town — please check the spelling or try a nearby bigger town.",
+        }
+    nearest = nearest_sitter_distance(location[0], location[1])
+    if nearest is None:
+        return {
+            "town": town, "resolved": True, "covered": False, "nearest_km": None,
+            "local_radius_km": LOCAL_RADIUS_KM,
+            "message": "We don't have any verified babysitters yet — check back soon as we onboard more sitters.",
+        }
+    covered = nearest["distance_km"] <= LOCAL_RADIUS_KM
+    return {
+        "town": town, "resolved": True, "covered": covered, "nearest_km": nearest["distance_km"],
+        "local_radius_km": LOCAL_RADIUS_KM,
+        "message": (
+            f"Good news — we have a verified babysitter about {nearest['distance_km']}km from {town.strip()}."
+            if covered else
+            f"The closest verified babysitter we have is about {nearest['distance_km']}km away, which is "
+            f"outside our {LOCAL_RADIUS_KM}km local service area. Contact us so we can look into finding a "
+            "sitter closer to you."
+        ),
+    }
+
+
+@app.get("/api/service-areas")
+def service_areas():
+    """Public list of towns where we currently have at least one verified,
+    active babysitter — grows automatically as sitters register and finish
+    verification. Powers the "Where we currently operate" list on the
+    website, with no manual updates needed."""
+    sitters = active_sitters_with_location()
+    areas: dict = {}
+    for s in sitters:
+        key = (s.get("town") or "").strip()
+        if not key:
+            continue
+        province = (s.get("province") or "").strip()
+        entry = areas.setdefault(key, {"town": key, "province": province, "sitter_count": 0})
+        entry["sitter_count"] += 1
+    result = sorted(areas.values(), key=lambda a: (-a["sitter_count"], a["town"]))
+    return {"areas": result, "local_radius_km": LOCAL_RADIUS_KM}
 
 
 @app.get("/api/babysitters/{sitter_id}/photo")

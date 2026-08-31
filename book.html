@@ -153,6 +153,30 @@
               </div>
             </div>
 
+            <div class="field-grid">
+              <div class="field">
+                <label for="town">Town / suburb</label>
+                <input type="text" id="town" name="town" autocomplete="address-level2" required minlength="2" maxlength="80" placeholder="e.g. Sandton" />
+              </div>
+              <div class="field">
+                <label for="province">Province</label>
+                <select id="province" name="province" required>
+                  <option value="">Select province</option>
+                  <option>Gauteng</option>
+                  <option>Mpumalanga</option>
+                  <option>Western Cape</option>
+                  <option>Eastern Cape</option>
+                  <option>KwaZulu-Natal</option>
+                  <option>Free State</option>
+                  <option>Limpopo</option>
+                  <option>North West</option>
+                  <option>Northern Cape</option>
+                </select>
+              </div>
+            </div>
+            <div id="coverage-result" class="alert" hidden></div>
+            <div class="form-section__hint">We can only confirm bookings where a verified babysitter can reach you within our 40km local service area &mdash; see our <a href="./terms.html">terms</a>. We'll check this automatically once you enter your town above.</div>
+
             <div class="field">
               <label>Do you have any pets at home?</label>
               <div class="action-toggle">

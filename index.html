@@ -366,6 +366,29 @@
     </div>
   </section>
 
+  <!-- SERVICE AREA / COVERAGE -->
+  <section class="section-pad" id="service-area" style="background: var(--color-surface-2);">
+    <div class="container">
+      <span class="eyebrow">Where we operate</span>
+      <h2 class="section-title">We only confirm bookings within a practical 40km travel distance.</h2>
+      <p class="section-lede" style="margin-top: var(--space-3);">Every booking is matched to a verified babysitter who can realistically reach your home &mdash; so we cap our local service area at 40km between family and babysitter. This list grows automatically as more babysitters register and complete verification.</p>
+
+      <div class="form-shell" style="margin-top: var(--space-6); max-width: 480px;">
+        <div class="field">
+          <label for="coverage-town">Check if we currently cover your town</label>
+          <input type="text" id="coverage-town" placeholder="e.g. Sandton" maxlength="80" />
+        </div>
+        <button type="button" class="btn btn--secondary" id="coverage-check-btn">Check coverage</button>
+        <div id="home-coverage-result" class="alert" hidden></div>
+      </div>
+
+      <div style="margin-top: var(--space-8);">
+        <h3 style="margin-bottom: var(--space-3);">Towns with a verified babysitter today</h3>
+        <div id="service-areas-list" class="check-list"><p>Loading current coverage&hellip;</p></div>
+      </div>
+    </div>
+  </section>
+
   <!-- PRICING / RATE BANDS -->
   <section class="section-pad" id="pricing">
     <div class="container">

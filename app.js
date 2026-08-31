@@ -117,4 +117,60 @@
       }
     });
   }
+
+  /* ---------- Service area coverage check + live towns list ---------- */
+  if (window.ETL_API) {
+    var coverageTownInput = document.getElementById('coverage-town');
+    var coverageCheckBtn = document.getElementById('coverage-check-btn');
+    var homeCoverageResult = document.getElementById('home-coverage-result');
+    var serviceAreasList = document.getElementById('service-areas-list');
+
+    async function runCoverageCheck() {
+      if (!coverageTownInput || !homeCoverageResult) return;
+      var town = coverageTownInput.value.trim();
+      if (!town) { homeCoverageResult.hidden = true; return; }
+      homeCoverageResult.hidden = false;
+      homeCoverageResult.className = 'alert alert--info';
+      homeCoverageResult.textContent = 'Checking...';
+      try {
+        var res = await window.ETL_API.get('/api/coverage-check?town=' + encodeURIComponent(town));
+        homeCoverageResult.className = 'alert ' + (res.covered ? 'alert--success' : 'alert--warning');
+        homeCoverageResult.textContent = (res.covered ? '\u2705 ' : '\u26a0\ufe0f ') + res.message;
+      } catch (err) {
+        homeCoverageResult.className = 'alert alert--error';
+        homeCoverageResult.textContent = 'Could not check coverage right now \u2014 please try again shortly.';
+      }
+    }
+    if (coverageCheckBtn) coverageCheckBtn.addEventListener('click', runCoverageCheck);
+    if (coverageTownInput) {
+      coverageTownInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); runCoverageCheck(); }
+      });
+    }
+
+    async function loadServiceAreas() {
+      if (!serviceAreasList) return;
+      try {
+        var res = await window.ETL_API.get('/api/service-areas');
+        var areas = (res && res.areas) || [];
+        serviceAreasList.innerHTML = '';
+        if (!areas.length) {
+          serviceAreasList.innerHTML = '<p>We\'re onboarding our first verified babysitters now \u2014 check back soon, or register above to be matched as soon as a sitter joins near you.</p>';
+          return;
+        }
+        areas.forEach(function (area) {
+          var item = document.createElement('div');
+          item.className = 'check-item';
+          item.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>' +
+            '<div><h3>' + area.town + (area.province ? ', ' + area.province : '') + '</h3>' +
+            '<p>' + area.sitter_count + ' verified babysitter' + (area.sitter_count === 1 ? '' : 's') + ' within reach</p></div>';
+          serviceAreasList.appendChild(item);
+        });
+      } catch (err) {
+        serviceAreasList.innerHTML = '<p>Could not load current coverage right now.</p>';
+      }
+    }
+    loadServiceAreas();
+  }
 })();

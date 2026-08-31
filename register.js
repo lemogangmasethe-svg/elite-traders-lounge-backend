@@ -156,6 +156,8 @@
         phone: form.phone.value.trim(),
         email: form.email.value.trim(),
         address: form.address.value.trim(),
+        town: form.town.value.trim(),
+        province: form.province.value.trim(),
         proof_of_address_type: form.proof_of_address_type.value,
         proof_of_address_confirmed: form.proof_of_address_confirmed.checked,
         smile_id_consent: form.smile_id_consent.checked,

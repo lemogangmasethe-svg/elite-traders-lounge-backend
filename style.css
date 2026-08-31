@@ -1438,9 +1438,14 @@ table.rate-table {
   background: var(--color-secondary-highlight);
   color: var(--color-secondary);
 }
+.alert--warning {
+  background: var(--color-warning-highlight);
+  color: var(--color-warning);
+}
 [data-theme='dark'] .alert--success,
 [data-theme='dark'] .alert--error,
-[data-theme='dark'] .alert--info {
+[data-theme='dark'] .alert--info,
+[data-theme='dark'] .alert--warning {
   color: var(--color-text);
 }
 .alert[hidden] {

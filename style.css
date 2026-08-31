@@ -1447,6 +1447,111 @@ table.rate-table {
   display: none;
 }
 
+/* ============================================================
+   Getting-started guide — big numbered steps
+   ============================================================ */
+
+.guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.guide-step {
+  display: flex;
+  gap: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.guide-step__num {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.guide-step__body h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.guide-step__body p {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  margin-bottom: var(--space-2);
+}
+
+.guide-step__body ul {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.guide-audio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-surface-offset);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-top: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.guide-audio p {
+  font-weight: 600;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.guide-audio audio {
+  flex: 1;
+  min-width: 240px;
+}
+
+.guide-glossary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.guide-glossary dt {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.guide-glossary dd {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: var(--space-1) 0 0;
+}
+
+@media (max-width: 640px) {
+  .guide-step {
+    flex-direction: column;
+  }
+  .guide-glossary {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---------- File uploads ---------- */
 .field input[type='file'] {
   width: 100%;

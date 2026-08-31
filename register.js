@@ -67,7 +67,7 @@
   var DOCUMENT_LABELS = {
     id_document: 'ID/passport document',
     proof_of_address: 'proof of address document',
-    police_clearance: 'police clearance certificate',
+    police_clearance: 'AFIS check or police clearance certificate',
     child_protection_clearance: 'Child Protection Register (Part B) clearance letter',
     foreign_police_clearance: 'foreign police clearance certificate',
   };

@@ -398,7 +398,7 @@ REGISTER_BODY = '''
               <span class="file-status" id="selfie-status"></span>
             </div>
             <div class="field">
-              <label for="police_clearance_document">Police clearance certificate <span class="field__hint">(required)</span></label>
+              <label for="police_clearance_document">AFIS check or police clearance certificate <span class="field__hint">(required)</span></label>
               <input type="file" id="police_clearance_document" name="police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
               <span class="field__hint">A valid SAPS Police Clearance Certificate &middot; JPG, PNG, or PDF, max 6MB. Don't have one yet? You can apply at any police station for a once-off fee of R190 &mdash; take your ID/passport, get SAPS 91(a) fingerprints taken, and pay at the station or by EFT; see the <a href="https://www.saps.gov.za/services/applying_clearence_certificate.php" target="_blank" rel="noopener">official SAPS guidance</a>. It typically takes a few weeks to be issued, so we recommend applying early. This is not a once-off check &mdash; to remain verified, you'll need to submit a fresh clearance certificate every 12 months.</span>
               <span class="file-status" id="police_clearance_document-status"></span>
@@ -1433,7 +1433,7 @@ SITTER_BODY = '''
             <button type="button" class="btn btn--ghost btn--sm" id="sitter-renewal-toggle">Submit renewal documents</button>
             <form id="sitter-renewal-form" novalidate hidden style="margin-top: var(--space-4);">
               <div class="field">
-                <label for="renew_police_clearance_document">New police clearance certificate <span class="field__hint">(required)</span></label>
+                <label for="renew_police_clearance_document">New AFIS check or police clearance certificate <span class="field__hint">(required)</span></label>
                 <input type="file" id="renew_police_clearance_document" name="renew_police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
                 <span class="file-status" id="renew_police_clearance_document-status"></span>
               </div>

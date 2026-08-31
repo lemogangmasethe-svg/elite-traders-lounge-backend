@@ -153,7 +153,7 @@
   }
 
   var RENEWAL_DOCUMENT_LABELS = {
-    police_clearance: 'police clearance certificate',
+    police_clearance: 'AFIS check or police clearance certificate',
     child_protection_clearance: 'Child Protection Register (Part B) clearance letter',
     foreign_police_clearance: 'foreign police clearance certificate',
   };

@@ -53,6 +53,22 @@ def is_configured() -> bool:
     return bool(_api_key())
 
 
+def _to_e164_za(phone: str) -> str:
+    """Best-effort conversion of a South African phone number to E.164
+    (+27...) format, since Smile ID rejects local "0..." numbers. Returns ""
+    if the input can't be confidently normalized, so callers can just omit
+    the phone_number field rather than send something invalid.
+    """
+    digits = "".join(ch for ch in (phone or "") if ch.isdigit() or ch == "+")
+    if digits.startswith("+27") and len(digits) == 12:
+        return digits
+    if digits.startswith("27") and len(digits) == 11:
+        return "+" + digits
+    if digits.startswith("0") and len(digits) == 10:
+        return "+27" + digits[1:]
+    return ""
+
+
 def _get_token(product: str = "biometric_kyc") -> str:
     # Smile ID's /v3/token endpoint requires multipart/form-data (a plain
     # application/x-www-form-urlencoded body returns 415 Unsupported Media
@@ -115,8 +131,9 @@ def submit_biometric_kyc(
     user_details = {"given_names": given_names, "last_name": last_name}
     if email:
         user_details["email"] = email
-    if phone:
-        user_details["phone_number"] = phone
+    normalized_phone = _to_e164_za(phone)
+    if normalized_phone:
+        user_details["phone_number"] = normalized_phone
 
     files = [("selfie_image", ("selfie.jpg", selfie_bytes, "image/jpeg"))]
     for i, frame in enumerate(liveness_bytes_list or []):

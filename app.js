@@ -101,6 +101,7 @@
         city: partnerForm.city.value.trim(),
         message: partnerForm.message.value.trim(),
       };
+      Object.assign(payload, window.ETL_API.antiBotFields(partnerForm));
 
       partnerSubmit.disabled = true;
       partnerSubmit.textContent = 'Sending...';

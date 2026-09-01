@@ -27,6 +27,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator, model_validator
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 import smile_id
 
@@ -515,19 +519,35 @@ if not ADMIN_PASSWORD and not USE_POSTGRES:
     ADMIN_PASSWORD = "EliteAdmin2026!"
 
 
-def require_admin(x_admin_password: str = Header(default="")):
+def require_admin(request: Request, x_admin_password: str = Header(default="")):
+    # Keyed by visitor IP (not the password itself) so repeated wrong
+    # guesses from one source get locked out, without needing a separate
+    # "/login" step — every admin-protected route checks this same
+    # dependency, closing the gap where someone could brute-force the
+    # password by hitting any admin endpoint directly with a header.
+    key = f"admin-login:{get_remote_address(request)}"
+    guard_login_attempts(key)
     if not ADMIN_PASSWORD or x_admin_password != ADMIN_PASSWORD:
+        record_failed_attempt(key)
         raise HTTPException(401, "Incorrect admin password.")
+    record_successful_attempt(key)
     return True
 
 
 def authenticate_sitter(email: str, access_code: str) -> dict:
+    # Keyed by email so repeated wrong access-code guesses against one
+    # sitter's account get locked out, across every route that logs a
+    # sitter in (login, bookings, respond, availability, renewal).
+    key = f"sitter-login:{email.strip().lower()}"
+    guard_login_attempts(key)
     row = db.execute(
         "SELECT * FROM babysitters WHERE lower(email) = lower(?) AND access_code = ?",
         (email.strip(), access_code.strip().upper()),
     ).fetchone()
     if not row:
+        record_failed_attempt(key)
         raise HTTPException(401, "That email and access code don't match any registered babysitter.")
+    record_successful_attempt(key)
     return dict(row)
 
 
@@ -641,6 +661,87 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+# ---------------------------------------------------------------------------
+# Traffic throttling — protects against a single visitor (human or script)
+# hammering the API. `default_limits` applies to every route automatically;
+# extra-sensitive routes (logins, PIN check-in, form submissions) get a
+# tighter limit via @limiter.limit(...) directly on the route below.
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Standard defensive HTTP headers on every API response. These stop a
+    few common browser-level tricks (e.g. disguising an API response inside
+    someone else's page, or a browser guessing the wrong content type)."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
+
+
+def check_not_a_robot(website: str, form_rendered_at: int) -> None:
+    """Lightweight, zero-cost spam/bot screen for public forms (sitter
+    registration, bookings, partner inquiries). Two independent signals:
+
+    1. Honeypot — `website` is a hidden field real visitors never see or
+       fill in. Most simple spam bots auto-fill every input on a page, so
+       any non-empty value here is almost certainly a bot.
+    2. Timing — `form_rendered_at` is the timestamp (ms) the page finished
+       loading, sent back by the browser. A real person needs at least a
+       few seconds to read and fill in a form this long; a submission
+       within ~2 seconds of page load is almost always a script.
+
+    Raises HTTPException(400) with a generic, friendly message if either
+    signal trips — never reveals which check failed, so it doesn't help a
+    bot author tune around it.
+    """
+    if (website or "").strip():
+        raise HTTPException(400, "We couldn't process that submission. Please refresh the page and try again.")
+    try:
+        elapsed_ms = datetime.now(timezone.utc).timestamp() * 1000 - float(form_rendered_at or 0)
+    except (TypeError, ValueError):
+        elapsed_ms = 0
+    if form_rendered_at and elapsed_ms < 2000:
+        raise HTTPException(400, "We couldn't process that submission. Please refresh the page and try again.")
+
+
+# ---------------------------------------------------------------------------
+# Login brute-force lockout — tracks recent failed password/access-code
+# attempts per key (usually visitor IP, or IP+email for sitter logins) in
+# memory. After too many failures in a short window, further attempts are
+# blocked for a cool-down period, regardless of whether the password/access
+# code is actually correct. This covers every route that checks a password
+# (not just the dedicated /login routes), since the admin dashboard sends
+# its password on every request via a header rather than a one-time login.
+# ---------------------------------------------------------------------------
+_failed_attempts: dict = {}
+MAX_FAILURES = 8
+FAILURE_WINDOW_SECONDS = 300  # a failed attempt "expires" after 5 minutes, naturally lifting the lockout
+
+
+def guard_login_attempts(key: str) -> None:
+    now = datetime.now(timezone.utc).timestamp()
+    attempts = [t for t in _failed_attempts.get(key, []) if now - t < FAILURE_WINDOW_SECONDS]
+    if len(attempts) >= MAX_FAILURES:
+        raise HTTPException(429, "Too many incorrect attempts. Please wait a few minutes and try again.")
+    _failed_attempts[key] = attempts
+
+
+def record_failed_attempt(key: str) -> None:
+    now = datetime.now(timezone.utc).timestamp()
+    _failed_attempts.setdefault(key, []).append(now)
+
+
+def record_successful_attempt(key: str) -> None:
+    _failed_attempts.pop(key, None)
+
 LEVELS = {"1", "2", "3", "4"}
 # "full_day" is a flat-price alternative to hourly "day" billing — the family
 # picks a preset day rate (Appendix C band floor or ceiling × 8 hours) instead
@@ -731,6 +832,10 @@ def gen_pin() -> str:
 
 
 class SitterRegistration(BaseModel):
+    # Anti-bot fields (not real profile data) — see check_not_a_robot().
+    website: Optional[str] = ""
+    form_rendered_at: Optional[int] = 0
+
     full_name: str = Field(min_length=2, max_length=120)
     id_type: str = "sa_id"
     id_number: Optional[str] = Field(default="", max_length=20)
@@ -886,6 +991,10 @@ class SitterRegistration(BaseModel):
 
 
 class BookingRequest(BaseModel):
+    # Anti-bot fields (not real booking data) — see check_not_a_robot().
+    website: Optional[str] = ""
+    form_rendered_at: Optional[int] = 0
+
     parent_name: str = Field(min_length=2, max_length=120)
     id_type: str = "sa_id"
     id_number: Optional[str] = Field(default="", max_length=20)
@@ -1150,6 +1259,10 @@ def health():
 
 
 class PartnerInquiry(BaseModel):
+    # Anti-bot fields (not real inquiry data) — see check_not_a_robot().
+    website: Optional[str] = ""
+    form_rendered_at: Optional[int] = 0
+
     business_name: str = Field(min_length=2, max_length=150)
     property_type: str = Field(min_length=2, max_length=40)
     contact_name: str = Field(min_length=2, max_length=120)
@@ -1197,7 +1310,9 @@ def send_partner_inquiry_email(inquiry: PartnerInquiry) -> bool:
 
 
 @app.post("/api/partner-inquiries", status_code=201)
-def create_partner_inquiry(payload: PartnerInquiry):
+@limiter.limit("10/minute")
+def create_partner_inquiry(payload: PartnerInquiry, request: Request):
+    check_not_a_robot(payload.website, payload.form_rendered_at)
     db.execute(
         "INSERT INTO partner_inquiries (business_name, property_type, contact_name, email, phone, city, "
         "message, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1243,7 +1358,9 @@ def _run_smile_id_submission(*, table: str, row_id: int, kind: str, full_name: s
 
 
 @app.post("/api/register-sitter", status_code=201)
-def register_sitter(payload: SitterRegistration):
+@limiter.limit("10/minute")
+def register_sitter(payload: SitterRegistration, request: Request):
+    check_not_a_robot(payload.website, payload.form_rendered_at)
     emailed = send_contract_email(payload.email, payload.full_name, "sitter")
     access_code = gen_access_code()
     liveness_json = json.dumps(payload.liveness_images)
@@ -1316,7 +1433,9 @@ def register_sitter(payload: SitterRegistration):
 
 
 @app.post("/api/bookings", status_code=201)
-def create_booking(payload: BookingRequest):
+@limiter.limit("10/minute")
+def create_booking(payload: BookingRequest, request: Request):
+    check_not_a_robot(payload.website, payload.form_rendered_at)
     quote = compute_rate_check(payload.level, payload.rate_type, payload.hourly_rate, payload.duration_hours)
     ref = gen_booking_ref()
     pin = gen_pin()
@@ -1450,10 +1569,17 @@ def summarize_hours(checkins):
 
 
 @app.post("/api/checkin", status_code=201)
-def checkin(payload: CheckinRequest):
+@limiter.limit("20/minute")
+def checkin(payload: CheckinRequest, request: Request):
+    # A 4-digit PIN only has 10,000 combinations, so guard against someone
+    # guessing it repeatedly against one booking reference.
+    pin_key = f"checkin-pin:{payload.booking_ref}"
+    guard_login_attempts(pin_key)
     row = db.execute("SELECT * FROM bookings WHERE booking_ref = ?", (payload.booking_ref,)).fetchone()
     if not row or row["pin"] != payload.pin:
+        record_failed_attempt(pin_key)
         raise HTTPException(404, "No booking found for that reference and PIN. Double-check both values with the other party.")
+    record_successful_attempt(pin_key)
     existing = db.execute(
         "SELECT 1 FROM checkins WHERE booking_ref = ? AND role = ? AND action = ?",
         (payload.booking_ref, payload.role, payload.action),
@@ -1481,9 +1607,14 @@ class AdminLoginRequest(BaseModel):
 
 
 @app.post("/api/admin/login")
-def admin_login(payload: AdminLoginRequest):
+@limiter.limit("6/minute")
+def admin_login(payload: AdminLoginRequest, request: Request):
+    key = f"admin-login:{get_remote_address(request)}"
+    guard_login_attempts(key)
     if not ADMIN_PASSWORD or payload.password != ADMIN_PASSWORD:
+        record_failed_attempt(key)
         raise HTTPException(401, "Incorrect admin password.")
+    record_successful_attempt(key)
     return {"ok": True}
 
 
@@ -1997,7 +2128,8 @@ class SitterAuthRequest(BaseModel):
 
 
 @app.post("/api/sitter/login")
-def sitter_login(payload: SitterAuthRequest):
+@limiter.limit("6/minute")
+def sitter_login(payload: SitterAuthRequest, request: Request):
     sitter = authenticate_sitter(payload.email, payload.access_code)
     return sitter_public(sitter)
 

@@ -2466,3 +2466,16 @@ table.rate-table {
   background: var(--color-warning-highlight);
   color: var(--color-warning);
 }
+
+/* Honeypot field — invisible to real visitors (off-screen + unfocusable),
+   but many spam bots auto-fill every input on a page, including this one.
+   If it comes back non-empty, the server rejects the submission as spam. */
+.hp-field {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}

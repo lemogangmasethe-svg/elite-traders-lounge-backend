@@ -487,7 +487,7 @@
           return v ? parseInt(v, 10) : null;
         })(),
         agreed_terms: form.agreed_terms.checked,
-      }, idDocFields, proofFields, selfieFields);
+      }, window.ETL_API.antiBotFields(form), idDocFields, proofFields, selfieFields);
 
       submitBtn.textContent = 'Submitting...';
       var res = await window.ETL_API.post('/api/bookings', payload);

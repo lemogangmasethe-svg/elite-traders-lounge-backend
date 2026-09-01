@@ -175,7 +175,7 @@
         profile_age: parseInt(form.profile_age.value, 10) || 0,
         paystack_email: form.paystack_email.value.trim(),
         agreed_terms: form.agreed_terms.checked,
-      }, idDocFields, proofFields, policeClearanceFields, childProtectionClearanceFields, foreignPoliceClearanceFields, selfieFields);
+      }, window.ETL_API.antiBotFields(form), idDocFields, proofFields, policeClearanceFields, childProtectionClearanceFields, foreignPoliceClearanceFields, selfieFields);
 
       submitBtn.textContent = 'Submitting...';
       var result = await window.ETL_API.post('/api/register-sitter', payload);

@@ -450,6 +450,10 @@ REGISTER_BODY = '''
     <div class="container container--narrow">
       <div class="form-shell">
         <form id="sitter-form" novalidate>
+          <div class="hp-field" aria-hidden="true">
+            <label for="sitter_website">Leave this field blank</label>
+            <input type="text" id="sitter_website" name="website" tabindex="-1" autocomplete="off" />
+          </div>
 
           <div class="form-section">
             <div class="form-section__title">Your details</div>
@@ -786,6 +790,10 @@ BOOK_BODY = '''
     <div class="container container--narrow">
       <div class="form-shell">
         <form id="booking-form" novalidate>
+          <div class="hp-field" aria-hidden="true">
+            <label for="booking_website">Leave this field blank</label>
+            <input type="text" id="booking_website" name="website" tabindex="-1" autocomplete="off" />
+          </div>
 
           <div class="form-section">
             <div class="form-section__title">Parent / guardian details</div>

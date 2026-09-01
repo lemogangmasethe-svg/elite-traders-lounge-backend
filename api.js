@@ -5,6 +5,7 @@
    - Local dev (served from localhost/127.0.0.1): talk to the local backend directly.
    - Any other host (e.g. Vercel production): use the hosted Render backend. */
 window.ETL_API = (function () {
+  var PAGE_LOADED_AT = Date.now();
   var PLACEHOLDER = '__PORT_8000__';
   var PRODUCTION_API = 'https://elite-traders-lounge-api.onrender.com';
   var API;
@@ -87,5 +88,21 @@ window.ETL_API = (function () {
     return await res.blob();
   }
 
-  return { post: post, get: get, getAuth: getAuth, postAuth: postAuth, getBlobAuth: getBlobAuth, base: API };
+  /* Anti-bot fields for public forms: a hidden "website" honeypot (real
+     visitors never see or fill it; many spam bots auto-fill every input)
+     plus how many milliseconds have passed since the page loaded (a
+     submission a fraction of a second after load is almost always a bot).
+     The server checks both before saving a registration/booking/inquiry. */
+  function antiBotFields(form) {
+    var hp = form ? form.querySelector('input[name="website"]') : null;
+    return {
+      website: hp ? hp.value : '',
+      form_rendered_at: PAGE_LOADED_AT,
+    };
+  }
+
+  return {
+    post: post, get: get, getAuth: getAuth, postAuth: postAuth, getBlobAuth: getBlobAuth,
+    antiBotFields: antiBotFields, base: API,
+  };
 })();

@@ -4,29 +4,18 @@
   if (!form) return;
 
   var NATIONAL_MINIMUM_WAGE = 30.23;
-  var RATE_BANDS = {
-    '1|day': { min: 35, max: 45, commission: function () { return 0.10; } },
-    '2|day': { min: 45, max: 65, commission: function () { return 0.125; } },
-    '3|day': {
-      min: 65,
-      max: 85,
-      commission: function (r) {
-        var t = Math.max(0, Math.min(1, (r - 65) / 20));
-        return 0.125 + 0.025 * t;
-      },
-    },
-    '3|overnight': { min: 70, max: 80, commission: function () { return 0.125; } },
-    '4|overnight': { min: 90, max: 100, commission: function () { return 0.125; } },
+  // Appendix C — fixed rates (no more negotiated band). Elite Traders
+  // Lounge's TOTAL commission is always 20% of the babysitter's fee, split
+  // between the Family (added to the bill) and the Babysitter (deducted
+  // from payout) — the split differs by level but always sums to 20%.
+  var RATE_CARD = {
+    '1|day': { hourly: 45, flat: 315, minHours: 5, sitterPct: 0.10, familyPct: 0.10 },
+    '2|day': { hourly: 55, flat: 385, minHours: 5, sitterPct: 0.12, familyPct: 0.08 },
+    '3|day': { hourly: 65, flat: 450, minHours: 4, sitterPct: 0.125, familyPct: 0.075 },
+    '3|overnight': { hourly: 70, flat: 700, minHours: 10, sitterPct: 0.10, familyPct: 0.10 },
+    '4|overnight': { hourly: 85, flat: 850, minHours: 10, sitterPct: 0.10, familyPct: 0.10 },
   };
-  var FULL_DAY_HOURS = 8;
-  var MIN_HOURS = { day: 4, overnight: 10, full_day: FULL_DAY_HOURS };
-  // Flat day-rate presets — Level 1-3 hourly band floor/ceiling × an 8-hour
-  // standard day. Reuses the "day" band above for validation and commission.
-  var FULL_DAY_PRESETS = {
-    '1': [35, 45],
-    '2': [45, 65],
-    '3': [65, 85],
-  };
+  var FULL_DAY_HOURS = 7;
 
   var API_ORIGIN = (window.ETL_API && window.ETL_API.base) || '';
 
@@ -149,9 +138,12 @@
   var qNet = document.getElementById('q-net');
   var qNote = document.getElementById('q-note');
   var dayRateField = document.getElementById('day-rate-field');
-  var dayRateSelect = document.getElementById('day_rate_preset');
+  var dayRateDisplay = document.getElementById('day-rate-display');
   var dayCountField = document.getElementById('day-count-field');
   var dayCountInput = document.getElementById('day_count');
+  var qFamilyCommPct = document.getElementById('q-family-comm-pct');
+  var qSitterCommPct = document.getElementById('q-sitter-comm-pct');
+  var qTotalCommPct = document.getElementById('q-total-comm-pct');
 
   // Babysitter browse: fetch verified sitters and show live availability based on chosen date/time/duration
   var sitterBrowseList = document.getElementById('sitter-browse-list');
@@ -278,14 +270,12 @@
   }
 
   function bandLabel(level, type) {
-    var band = RATE_BANDS[level + '|' + bandLookupType(type)];
+    var band = RATE_CARD[level + '|' + bandLookupType(type)];
     if (!band) return 'This level does not support ' + (type === 'full_day' ? 'full-day' : type) + ' bookings.';
     if (type === 'full_day') {
-      var preset = FULL_DAY_PRESETS[level];
-      if (!preset) return 'This level does not support full-day bookings.';
-      return 'Level ' + level + ' full-day flat rate: R' + (preset[0] * FULL_DAY_HOURS) + '\u2013R' + (preset[1] * FULL_DAY_HOURS) + '/day (' + FULL_DAY_HOURS + ' hours)';
+      return 'Level ' + level + ' full-day flat rate: R' + band.flat + '/day (' + FULL_DAY_HOURS + ' hours)';
     }
-    return 'Level ' + level + ' ' + type + ' band: R' + band.min + '\u2013R' + band.max + '/hour';
+    return 'Level ' + level + ' ' + type + ' rate: R' + band.hourly + '/hour (fixed, minimum ' + band.minHours + ' hours)';
   }
 
   function updateHint() {
@@ -295,7 +285,7 @@
   function updateLevelOptions() {
     var type = rateType();
     Array.prototype.forEach.call(levelSel.options, function (opt) {
-      var ok = !!RATE_BANDS[opt.value + '|' + bandLookupType(type)];
+      var ok = !!RATE_CARD[opt.value + '|' + bandLookupType(type)];
       opt.disabled = !ok;
     });
     var current = levelSel.options[levelSel.selectedIndex];
@@ -311,47 +301,55 @@
     updateDayRateField();
   }
 
+  function pct(n) {
+    return (n * 100).toFixed(1).replace(/\.0$/, '') + '%';
+  }
+
   function recalcQuote() {
     var level = levelSel.value;
     var type = rateType();
-    var rate = parseFloat(rateInput.value);
     var duration = parseFloat(durationInput.value);
-    var band = RATE_BANDS[level + '|' + bandLookupType(type)];
+    var band = RATE_CARD[level + '|' + bandLookupType(type)];
 
-    if (!band || isNaN(rate) || isNaN(duration) || rate <= 0 || duration <= 0) {
+    if (!band || isNaN(duration) || duration <= 0) {
       quoteBox.hidden = true;
       return;
     }
 
-    var minHours = MIN_HOURS[type];
-    var applied = rate;
     var note = '';
-    if (rate < NATIONAL_MINIMUM_WAGE || rate < band.min) {
-      applied = Math.max(band.min, NATIONAL_MINIMUM_WAGE);
-      note = 'Your rate is below the Level ' + level + ' ' + type + ' minimum or the National Minimum Wage (' + fmtR(NATIONAL_MINIMUM_WAGE) + '/hour) \u2014 automatically corrected to ' + fmtR(applied) + '/hour per Appendix C.';
-    } else if (rate > band.max) {
-      note = 'Your rate is above the Level ' + level + ' band ceiling (' + fmtR(band.max) + '/hour) \u2014 allowed, since only the floor is enforced.';
-    }
-    if (type === 'full_day') {
-      if (duration < minHours || duration % minHours !== 0) {
-        note = (note ? note + ' ' : '') + 'Full-day bookings are billed in ' + minHours + '-hour blocks (1 day = ' + minHours + ' hours, 2 days = ' + (minHours * 2) + ' hours, etc.).';
-      }
-    } else if (duration < minHours) {
-      note = (note ? note + ' ' : '') + 'Minimum booking length for a ' + type + ' booking is ' + minHours + ' hours \u2014 your request will be rejected until duration is increased.';
+    var applied = Math.max(band.hourly, NATIONAL_MINIMUM_WAGE);
+    if (band.hourly < NATIONAL_MINIMUM_WAGE) {
+      note = 'Level ' + level + ' ' + type + ' rate was below the National Minimum Wage (' + fmtR(NATIONAL_MINIMUM_WAGE) + '/hour) \u2014 automatically corrected to ' + fmtR(applied) + '/hour.';
     }
 
-    // Two-sided commission: the same commission rate is added on top of the
-    // Family's bill AND deducted from the Babysitter's payout.
-    var commRate = band.commission(applied);
-    var fee = Math.round(applied * duration * 100) / 100;
-    var familyComm = Math.round(fee * commRate * 100) / 100;
+    var fee;
+    if (type === 'full_day') {
+      if (duration < FULL_DAY_HOURS || duration % FULL_DAY_HOURS !== 0) {
+        note = (note ? note + ' ' : '') + 'Full-day bookings are billed in ' + FULL_DAY_HOURS + '-hour blocks (1 day = ' + FULL_DAY_HOURS + ' hours, 2 days = ' + (FULL_DAY_HOURS * 2) + ' hours, etc.).';
+      }
+      var dayCount = duration / FULL_DAY_HOURS;
+      fee = Math.round(band.flat * dayCount * 100) / 100;
+    } else {
+      if (duration < band.minHours) {
+        note = (note ? note + ' ' : '') + 'Minimum booking length for a Level ' + level + ' ' + type + ' booking is ' + band.minHours + ' hours \u2014 your request will be rejected until duration is increased.';
+      }
+      fee = Math.round(applied * duration * 100) / 100;
+    }
+
+    // Two-sided commission: Elite Traders Lounge's TOTAL commission is
+    // always 20% of the fee, split between the Family (added to the bill)
+    // and the Babysitter (deducted from payout) — the split differs by
+    // level but always sums to 20%.
+    var familyComm = Math.round(fee * band.familyPct * 100) / 100;
     var familyTotal = Math.round((fee + familyComm) * 100) / 100;
-    var sitterComm = Math.round(fee * commRate * 100) / 100;
+    var sitterComm = Math.round(fee * band.sitterPct * 100) / 100;
     var net = Math.round((fee - sitterComm) * 100) / 100;
 
-    qRate.textContent = fmtR(applied) + '/hr';
+    qRate.textContent = type === 'full_day' ? fmtR(band.flat) + '/day' : fmtR(applied) + '/hr';
     qDuration.textContent = duration + ' hours' + (type === 'full_day' ? ' (' + (duration / FULL_DAY_HOURS) + ' day' + (duration / FULL_DAY_HOURS === 1 ? '' : 's') + ')' : '');
-    qCommPct.textContent = (commRate * 100).toFixed(1).replace(/\.0$/, '') + '%';
+    if (qFamilyCommPct) qFamilyCommPct.textContent = pct(band.familyPct);
+    if (qSitterCommPct) qSitterCommPct.textContent = pct(band.sitterPct);
+    if (qTotalCommPct) qTotalCommPct.textContent = pct(band.familyPct + band.sitterPct);
     qComm.textContent = fmtR(sitterComm);
     qFee.textContent = fmtR(fee);
     if (qFamilyComm) qFamilyComm.textContent = fmtR(familyComm);
@@ -377,37 +375,37 @@
     if (durationField) durationField.hidden = isFullDay;
     if (rateInput) rateInput.required = !isFullDay;
     if (durationInput) durationInput.required = !isFullDay;
-    if (!isFullDay) return;
-
-    var level = levelSel.value;
-    if (dayRateSelect) {
-      Array.prototype.forEach.call(dayRateSelect.options, function (opt) {
-        if (!opt.value) return;
-        opt.hidden = opt.getAttribute('data-level') !== level;
-      });
-      var current = dayRateSelect.options[dayRateSelect.selectedIndex];
-      if (!current || current.hidden || !current.value) {
-        for (var i = 0; i < dayRateSelect.options.length; i++) {
-          var opt = dayRateSelect.options[i];
-          if (opt.value && opt.getAttribute('data-level') === level) {
-            dayRateSelect.selectedIndex = i;
-            break;
-          }
-        }
-      }
+    if (!isFullDay) {
+      applyFixedRate();
+      return;
     }
     applyDayRateSelection();
   }
 
+  // Rates are fixed per level/type now — there is nothing for the family to
+  // choose. This just fills the (read-only) rate input and lets
+  // recalcQuote() do the math.
+  function applyFixedRate() {
+    var level = levelSel.value;
+    var type = rateType();
+    var band = RATE_CARD[level + '|' + bandLookupType(type)];
+    if (rateInput) rateInput.value = band ? band.hourly : '';
+    recalcQuote();
+  }
+
   function applyDayRateSelection() {
-    if (!dayRateSelect) return;
-    var selected = dayRateSelect.options[dayRateSelect.selectedIndex];
-    var hourly = selected ? parseFloat(selected.value) : NaN;
+    var level = levelSel.value;
+    var band = RATE_CARD[level + '|day'];
     var days = parseInt((dayCountInput && dayCountInput.value) || '1', 10);
     if (!days || days < 1) days = 1;
     if (dayCountInput) dayCountInput.value = days;
-    if (!isNaN(hourly) && hourly > 0) {
-      rateInput.value = hourly;
+    if (dayRateDisplay) {
+      dayRateDisplay.textContent = band
+        ? 'Level ' + level + ' flat day rate: R' + band.flat + '/day (' + FULL_DAY_HOURS + ' hours)'
+        : 'This level does not support full-day bookings.';
+    }
+    if (band) {
+      rateInput.value = band.hourly;
       durationInput.value = days * FULL_DAY_HOURS;
     } else {
       rateInput.value = '';
@@ -425,13 +423,11 @@
   levelSel.addEventListener('change', function () {
     updateHint();
     updateDayRateField();
-    recalcQuote();
   });
-  rateInput.addEventListener('input', recalcQuote);
   durationInput.addEventListener('input', recalcQuote);
-  if (dayRateSelect) dayRateSelect.addEventListener('change', applyDayRateSelection);
   if (dayCountInput) dayCountInput.addEventListener('input', applyDayRateSelection);
   updateLevelOptions();
+  updateDayRateField();
 
   var submitBtn = document.getElementById('booking-submit');
   var errorBox = document.getElementById('booking-error');

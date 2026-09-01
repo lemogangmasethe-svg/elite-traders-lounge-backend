@@ -650,27 +650,31 @@ RATE_TYPES = {"day", "overnight", "full_day"}
 ROLES = {"sitter", "parent"}
 ACTIONS = {"arrival", "departure"}
 
-# Appendix C — rate bands (hourly, ZAR) and commission rules, aligned to the
-# 2026/2027 National Minimum Wage of R30.23/hour (effective 1 March 2026,
-# Government Gazette No. 54075).
+# Appendix C — fixed rates (ZAR) and two-sided commission split, aligned to
+# the 2026/2027 National Minimum Wage of R30.23/hour (effective 1 March 2026,
+# Government Gazette No. 54075). Each level/booking-type has ONE fixed
+# hourly rate (no more negotiated band) and a flat day/night rate. Elite
+# Traders Lounge's TOTAL commission is always 20% of the babysitter's fee,
+# split between what's added to the Family's bill ("family_pct") and what's
+# deducted from the Babysitter's payout ("sitter_pct") — the split differs
+# by level, but family_pct + sitter_pct always equals 0.20.
 NATIONAL_MINIMUM_WAGE = 30.23
 
-RATE_BANDS = {
-    ("1", "day"): {"min": 35, "max": 45, "commission": lambda r: 0.10},
-    ("2", "day"): {"min": 45, "max": 65, "commission": lambda r: 0.125},
-    ("3", "day"): {"min": 65, "max": 85, "commission": lambda r: 0.125 + 0.025 * max(0, min(1, (r - 65) / 20))},
-    ("3", "overnight"): {"min": 70, "max": 80, "commission": lambda r: 0.125},
-    ("4", "overnight"): {"min": 90, "max": 100, "commission": lambda r: 0.125},
+RATE_CARD = {
+    ("1", "day"): {"hourly": 45, "flat": 315, "min_hours": 5, "sitter_pct": 0.10, "family_pct": 0.10},
+    ("2", "day"): {"hourly": 55, "flat": 385, "min_hours": 5, "sitter_pct": 0.12, "family_pct": 0.08},
+    ("3", "day"): {"hourly": 65, "flat": 450, "min_hours": 4, "sitter_pct": 0.125, "family_pct": 0.075},
+    ("3", "overnight"): {"hourly": 70, "flat": 700, "min_hours": 10, "sitter_pct": 0.10, "family_pct": 0.10},
+    ("4", "overnight"): {"hourly": 85, "flat": 850, "min_hours": 10, "sitter_pct": 0.10, "family_pct": 0.10},
 }
-FULL_DAY_HOURS = 8
-# Flat day-rate presets shown on the booking form — the Appendix C hourly band
-# floor and ceiling for that level, multiplied by an 8-hour standard day.
-FULL_DAY_PRESETS = {
-    "1": [35, 45],
-    "2": [45, 65],
-    "3": [65, 85],
+# A "full_day" booking is a flat-price alternative to hourly "day" billing —
+# 1 day = 7 hours at the level's flat day rate above (day_count multiplies it).
+FULL_DAY_HOURS = 7
+MIN_HOURS = {
+    "day": {level: band["min_hours"] for (level, t), band in RATE_CARD.items() if t == "day"},
+    "overnight": {level: band["min_hours"] for (level, t), band in RATE_CARD.items() if t == "overnight"},
+    "full_day": FULL_DAY_HOURS,
 }
-MIN_HOURS = {"day": 4, "overnight": 10, "full_day": FULL_DAY_HOURS}
 
 
 def now_iso() -> str:
@@ -1019,40 +1023,51 @@ class CheckinRequest(BaseModel):
 
 
 def compute_rate_check(level: str, rate_type: str, hourly_rate: float, duration_hours: float):
-    # "full_day" is a flat-price booking (a preset day rate × 8-hour blocks)
-    # that reuses the hourly "day" band for that level for validation and
+    # "full_day" is a flat-price booking (the level's flat day rate ×
+    # 7-hour blocks) that reuses the "day" rate card entry for that level for
     # commission purposes — only the label and minimum-hours check differ.
     band_lookup_type = "day" if rate_type == "full_day" else rate_type
-    band = RATE_BANDS.get((level, band_lookup_type))
+    band = RATE_CARD.get((level, band_lookup_type))
     if band is None:
-        raise HTTPException(422, f"Level {level} has no {rate_type} rate band. Level 1 and 2 are day/full-day only; Level 3 supports day, full-day, and overnight; Level 4 is overnight/specialist only.")
-    min_hours = MIN_HOURS[rate_type]
+        raise HTTPException(422, f"Level {level} has no {rate_type} rate. Level 1 and 2 are day/full-day only; Level 3 supports day, full-day, and overnight; Level 4 is overnight/specialist only.")
     if rate_type == "full_day":
+        min_hours = FULL_DAY_HOURS
         if duration_hours < min_hours or duration_hours % min_hours != 0:
             raise HTTPException(422, f"Full-day bookings are billed in {min_hours}-hour blocks (1 day = {min_hours} hours, 2 days = {min_hours * 2} hours, etc.).")
-    elif duration_hours < min_hours:
-        raise HTTPException(422, f"Minimum booking length for a {rate_type} booking is {min_hours} hours.")
-    applied_rate = hourly_rate
-    compliance_note = "within band"
-    if hourly_rate < NATIONAL_MINIMUM_WAGE or hourly_rate < band["min"]:
-        applied_rate = max(band["min"], NATIONAL_MINIMUM_WAGE)
-        compliance_note = f"rate below the Level {level} {rate_type} minimum (R{band['min']}/hour) or below the National Minimum Wage (R{NATIONAL_MINIMUM_WAGE}/hour) — automatically corrected to R{applied_rate}/hour per Appendix C"
-    elif hourly_rate > band["max"]:
-        compliance_note = f"rate is above the Level {level} {rate_type} band ceiling (R{band['max']}/hour) — allowed, since only the floor is enforced"
-    commission_rate = round(band["commission"](applied_rate), 4)
-    # Two-sided commission: Elite Traders Lounge's commission is now charged
-    # on BOTH sides of the booking — added on top of what the Family pays,
-    # AND deducted from what the Babysitter is paid out (the sitter-side
-    # deduction is unchanged from the original single-sided model).
-    fee = round(applied_rate * duration_hours, 2)
-    family_commission_amount = round(fee * commission_rate, 2)
+    else:
+        min_hours = band["min_hours"]
+        if duration_hours < min_hours:
+            raise HTTPException(422, f"Minimum booking length for a Level {level} {rate_type} booking is {min_hours} hours.")
+    # Rates are fixed by level/type — there is no negotiated band anymore.
+    # The server always applies the fixed Appendix C rate; whatever the
+    # client sends in hourly_rate is informational only and never used.
+    applied_rate = band["hourly"]
+    compliance_note = f"fixed Level {level} {rate_type} rate applied per Appendix C"
+    if applied_rate < NATIONAL_MINIMUM_WAGE:
+        applied_rate = NATIONAL_MINIMUM_WAGE
+        compliance_note = f"Level {level} {rate_type} rate was below the National Minimum Wage (R{NATIONAL_MINIMUM_WAGE}/hour) — automatically corrected to R{applied_rate}/hour"
+    if rate_type == "full_day":
+        day_count = duration_hours / FULL_DAY_HOURS
+        fee = round(band["flat"] * day_count, 2)
+    else:
+        fee = round(applied_rate * duration_hours, 2)
+    # Two-sided commission: Elite Traders Lounge's TOTAL commission is
+    # always 20% of the babysitter's fee, split unevenly — part is added on
+    # top of what the Family pays, part is deducted from the Babysitter's
+    # payout. The two percentages differ by level but always sum to 20%.
+    sitter_rate = band["sitter_pct"]
+    family_rate = band["family_pct"]
+    total_commission_rate = round(sitter_rate + family_rate, 4)
+    family_commission_amount = round(fee * family_rate, 2)
     family_total = round(fee + family_commission_amount, 2)
-    sitter_commission_amount = round(fee * commission_rate, 2)
+    sitter_commission_amount = round(fee * sitter_rate, 2)
     net_to_babysitter = round(fee - sitter_commission_amount, 2)
     return {
         "applied_hourly_rate": applied_rate,
         "compliance_note": compliance_note,
-        "commission_rate": commission_rate,
+        "commission_rate": total_commission_rate,
+        "family_commission_rate": family_rate,
+        "sitter_commission_rate": sitter_rate,
         "babysitter_fee": fee,
         "family_commission_amount": family_commission_amount,
         "family_total": family_total,

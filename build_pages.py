@@ -613,22 +613,22 @@ REGISTER_BODY = '''
                 <label class="radio-card">
                   <input type="radio" name="experience_level" value="1" required />
                   <strong>Level 1 &mdash; Entry</strong>
-                  <span>0&ndash;1 year &middot; R35&ndash;R45/hr day</span>
+                  <span>0&ndash;1 year &middot; R45/hr day (5hr min) or R315/day flat</span>
                 </label>
                 <label class="radio-card">
                   <input type="radio" name="experience_level" value="2" />
                   <strong>Level 2 &mdash; Standard</strong>
-                  <span>1&ndash;3 years, references &middot; R45&ndash;R65/hr day</span>
+                  <span>1&ndash;3 years, references &middot; R55/hr day (5hr min) or R385/day flat</span>
                 </label>
                 <label class="radio-card">
                   <input type="radio" name="experience_level" value="3" />
                   <strong>Level 3 &mdash; Advanced</strong>
-                  <span>3+ yrs, First Aid/CPR &middot; R65&ndash;R85/hr day, R70&ndash;R80/hr overnight</span>
+                  <span>3+ yrs, First Aid/CPR &middot; R65/hr day (4hr min) or R450/day flat, R700/night overnight</span>
                 </label>
                 <label class="radio-card">
                   <input type="radio" name="experience_level" value="4" />
                   <strong>Level 4 &mdash; Specialist</strong>
-                  <span>Overnight / special needs &middot; R90&ndash;R100/hr overnight</span>
+                  <span>Overnight / special needs &middot; R850/night (10hr)</span>
                 </label>
               </div>
             </div>
@@ -774,7 +774,7 @@ BOOK_BODY = '''
       <div class="breadcrumb"><a href="./index.html">Home</a> <span>/</span> <span>Book a sitter</span></div>
       <span class="eyebrow">Parent / guardian &middot; book a sitter</span>
       <h1>Register as a parent or guardian and book a sitter.</h1>
-      <p>Choose the level and rate you've agreed with your babysitter. Your quote is checked live against Appendix C's rate bands and the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; any rate below the compliant minimum is automatically corrected. Day bookings need a minimum of 4 hours; overnight bookings need a minimum of 10 hours.</p>
+      <p>Choose the level and booking type &mdash; the rate is fixed per Appendix C (no negotiation needed) and checked against the National Minimum Wage (R30.23/hour, effective 1 March 2026). Level 1 &amp; 2 day bookings need a minimum of 5 hours; Level 3 day bookings need a minimum of 4 hours; overnight bookings need a minimum of 10 hours.</p>
       <div class="alert alert--info">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
         <span>New to this? Read our <a href="./guide.html">simple, step-by-step getting started guide</a> first &mdash; it walks you through everything, including creating your Paystack account.</span>
@@ -936,9 +936,9 @@ BOOK_BODY = '''
             <div class="field">
               <label>Booking type</label>
               <div class="action-toggle">
-                <label><input type="radio" name="rate_type" value="day" checked /> Day booking <span class="field__hint">(min. 4 hours, hourly)</span></label>
-                <label><input type="radio" name="rate_type" value="full_day" /> Full-day flat rate <span class="field__hint">(8 hours, select a day rate)</span></label>
-                <label><input type="radio" name="rate_type" value="overnight" /> Overnight <span class="field__hint">(min. 10 hours)</span></label>
+                <label><input type="radio" name="rate_type" value="day" checked /> Day booking <span class="field__hint">(hourly, fixed rate by level)</span></label>
+                <label><input type="radio" name="rate_type" value="full_day" /> Full-day flat rate <span class="field__hint">(7 hours, fixed rate by level)</span></label>
+                <label><input type="radio" name="rate_type" value="overnight" /> Overnight <span class="field__hint">(min. 10 hours, fixed rate by level)</span></label>
               </div>
             </div>
 
@@ -953,26 +953,17 @@ BOOK_BODY = '''
                 </select>
               </div>
               <div class="field" id="day-rate-field" hidden>
-                <label for="day_rate_preset">Select a day rate</label>
-                <select id="day_rate_preset">
-                  <option value="">Choose a day rate...</option>
-                  <option data-level="1" value="35">Level 1 &mdash; Standard (R280/day)</option>
-                  <option data-level="1" value="45">Level 1 &mdash; Premium (R360/day)</option>
-                  <option data-level="2" value="45">Level 2 &mdash; Standard (R360/day)</option>
-                  <option data-level="2" value="65">Level 2 &mdash; Premium (R520/day)</option>
-                  <option data-level="3" value="65">Level 3 &mdash; Standard (R520/day)</option>
-                  <option data-level="3" value="85">Level 3 &mdash; Premium (R680/day)</option>
-                </select>
-                <span class="field__hint">Flat price for an 8-hour day, based on the Level's hourly band (Appendix C).</span>
+                <label>Flat day rate</label>
+                <p class="field__static" id="day-rate-display">Level 1 flat day rate: R315/day (7 hours)</p>
               </div>
               <div class="field" id="day-count-field" hidden>
                 <label for="day_count">Number of days</label>
                 <input type="number" id="day_count" min="1" step="1" value="1" />
               </div>
               <div class="field">
-                <label for="hourly_rate">Agreed hourly rate (R)</label>
-                <input type="number" id="hourly_rate" name="hourly_rate" required min="1" step="0.01" placeholder="e.g. 45" />
-                <span class="field__hint" id="band-hint">Level 1 day band: R35&ndash;R45/hour</span>
+                <label for="hourly_rate">Rate for this level (R)</label>
+                <input type="number" id="hourly_rate" name="hourly_rate" required min="1" step="0.01" readonly />
+                <span class="field__hint" id="band-hint">Level 1 day rate: R45/hour (fixed, minimum 5 hours)</span>
               </div>
               <div class="field">
                 <label for="duration_hours">Duration (hours)</label>
@@ -997,13 +988,14 @@ BOOK_BODY = '''
             </div>
 
             <div class="quote-box" id="quote-box" hidden>
-              <div class="quote-box__row"><span>Applied hourly rate</span><strong id="q-rate">&ndash;</strong></div>
+              <div class="quote-box__row"><span>Rate for this level</span><strong id="q-rate">&ndash;</strong></div>
               <div class="quote-box__row"><span>Duration</span><strong id="q-duration">&ndash;</strong></div>
-              <div class="quote-box__row"><span>Babysitter's booking fee (rate &times; hours)</span><strong id="q-fee">&ndash;</strong></div>
-              <div class="quote-box__row"><span>+ Elite Traders Lounge commission (<span id="q-comm-pct">&ndash;</span>, added to your bill)</span><strong id="q-family-comm">&ndash;</strong></div>
+              <div class="quote-box__row"><span>Babysitter's booking fee</span><strong id="q-fee">&ndash;</strong></div>
+              <div class="quote-box__row"><span>+ Elite Traders Lounge commission (<span id="q-family-comm-pct">&ndash;</span>, added to your bill)</span><strong id="q-family-comm">&ndash;</strong></div>
               <div class="quote-box__row total"><span>Total you pay as the Family</span><strong id="q-family-total">&ndash;</strong></div>
-              <div class="quote-box__row"><span>&ndash; Elite Traders Lounge commission (deducted from babysitter)</span><strong id="q-comm">&ndash;</strong></div>
+              <div class="quote-box__row"><span>&ndash; Elite Traders Lounge commission (<span id="q-sitter-comm-pct">&ndash;</span>, deducted from babysitter)</span><strong id="q-comm">&ndash;</strong></div>
               <div class="quote-box__row total"><span>Net the babysitter receives</span><strong id="q-net">&ndash;</strong></div>
+              <div class="quote-box__row"><span>Total Elite Traders Lounge commission on this booking</span><strong id="q-total-comm-pct">&ndash;</strong></div>
               <p class="quote-box__note" id="q-note" hidden></p>
             </div>
           </div>
@@ -1247,42 +1239,42 @@ POLICIES_BODY = '''
         <h2>3.2 Minimum Wage Compliance</h2>
         <p>The Babysitter acknowledges that:</p>
         <ul>
-          <li>Elite Traders Lounge uses experience-based rate bands (Level 1&ndash;4) as set out in <a href="#rate-bands">Appendix C: Rate Bands &amp; Minimum Wage Check</a>, and all bookings must fall within these ranges.</li>
-          <li>The Babysitter's agreed hourly rate must be within the correct level band in Appendix C and never lower than the current National Minimum Wage &mdash; <strong>R30.23 per hour, effective 1 March 2026</strong> (Government Gazette No. 54075, published 3 February 2026, a 5.0% increase on the 2025 rate) &mdash; or the applicable rate at the time of service.</li>
-          <li>If a rate is entered below the platform's minimum for that level or below the legal minimum wage, that rate is void, and the minimum compliant rate in Appendix C automatically applies.</li>
-          <li>The Family and Babysitter must select the appropriate level (1&ndash;4) and agree on a rate within that band, at or above the legal minimum, as described in Appendix C, before booking confirmation.</li>
+          <li>Elite Traders Lounge uses experience-based, fixed rates (Level 1&ndash;4) as set out in <a href="#rate-bands">Appendix C: Rates &amp; Minimum Wage Check</a> &mdash; there is no negotiation of rate; the level determines the price.</li>
+          <li>Every Level's fixed rate is set above the current National Minimum Wage &mdash; <strong>R30.23 per hour, effective 1 March 2026</strong> (Government Gazette No. 54075, published 3 February 2026, a 5.0% increase on the 2025 rate) &mdash; or the applicable rate at the time of service.</li>
+          <li>If the National Minimum Wage is ever updated above a Level's fixed rate, that rate is automatically corrected up to the compliant minimum until Appendix C is revised.</li>
+          <li>The Family and Babysitter select the appropriate level (1&ndash;4) and booking type as described in Appendix C before booking confirmation; the rate and commission split are applied automatically.</li>
         </ul>
         <div class="policy-callout"><strong>2026/2027 rate note:</strong> The National Minimum Wage increased from R28.79/hour (2025) to R30.23/hour effective 1 March 2026. Elite Traders Lounge reviews and updates this figure whenever the Department of Employment and Labour publishes a new Government Gazette rate, and the platform's booking system automatically enforces the current rate at the time of service.</div>
       </div>
 
       <div class="policy-section" id="rate-bands">
-        <h2>Appendix C &middot; Rate Bands &amp; Minimum Wage Check</h2>
-        <p>Rates below any band floor, or below the National Minimum Wage, are void and automatically corrected to the compliant minimum shown below.</p>
+        <h2>Appendix C &middot; Rates &amp; Minimum Wage Check</h2>
+        <p>Every Level has one fixed rate &mdash; there is no negotiation. Elite Traders Lounge's total commission is always <strong>20%</strong> of the babysitter's fee, split between what's added to the Family's bill and what's deducted from the Babysitter's payout; the split differs by Level but always adds up to 20%.</p>
         <div class="rate-table-wrap">
           <table class="rate-table">
-            <thead><tr><th>Level</th><th>Experience</th><th>Booking type</th><th>Hourly rate band</th><th>Minimum booking</th><th>Commission</th></tr></thead>
+            <thead><tr><th>Level</th><th>Experience</th><th>Booking type</th><th>Fixed rate</th><th>Minimum booking</th><th>Family commission</th><th>Sitter commission</th><th>Total</th></tr></thead>
             <tbody>
-              <tr><td><span class="rate-badge">Level 1</span></td><td>Entry &middot; 0&ndash;1 year</td><td>Day</td><td><strong>R35 &ndash; R45</strong>/hr</td><td>4 hours</td><td>10%</td></tr>
-              <tr><td><span class="rate-badge">Level 2</span></td><td>Standard &middot; 1&ndash;3 years, references</td><td>Day</td><td><strong>R45 &ndash; R65</strong>/hr</td><td>4 hours</td><td>12.5%</td></tr>
-              <tr><td><span class="rate-badge">Level 3</span></td><td>Advanced &middot; 3+ years, First Aid/CPR</td><td>Day</td><td><strong>R65 &ndash; R85</strong>/hr</td><td>4 hours</td><td>12.5% &ndash; 15%</td></tr>
-              <tr><td><span class="rate-badge">Level 3</span></td><td>Advanced &middot; night rate</td><td>Overnight</td><td><strong>R70 &ndash; R80</strong>/hr</td><td>10 hours</td><td>12.5%</td></tr>
-              <tr><td><span class="rate-badge">Level 4</span></td><td>Specialist &middot; overnight / special needs</td><td>Overnight</td><td><strong>R90 &ndash; R100</strong>/hr</td><td>10 hours</td><td>12.5%</td></tr>
+              <tr><td><span class="rate-badge">Level 1</span></td><td>Entry &middot; 0&ndash;1 year</td><td>Day</td><td><strong>R45</strong>/hr</td><td>5 hours</td><td>10%</td><td>10%</td><td>20%</td></tr>
+              <tr><td><span class="rate-badge">Level 2</span></td><td>Standard &middot; 1&ndash;3 years, references</td><td>Day</td><td><strong>R55</strong>/hr</td><td>5 hours</td><td>8%</td><td>12%</td><td>20%</td></tr>
+              <tr><td><span class="rate-badge">Level 3</span></td><td>Advanced &middot; 3+ years, First Aid/CPR</td><td>Day</td><td><strong>R65</strong>/hr</td><td>4 hours</td><td>7.5%</td><td>12.5%</td><td>20%</td></tr>
+              <tr><td><span class="rate-badge">Level 3</span></td><td>Advanced &middot; night rate</td><td>Overnight</td><td><strong>R70</strong>/hr</td><td>10 hours</td><td>10%</td><td>10%</td><td>20%</td></tr>
+              <tr><td><span class="rate-badge">Level 4</span></td><td>Specialist &middot; overnight / special needs</td><td>Overnight</td><td><strong>R85</strong>/hr</td><td>10 hours</td><td>10%</td><td>10%</td><td>20%</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="form-section__hint">Level 3 day commission scales from 12.5% at R65/hour up to 15% at R85/hour. All other bands charge a flat commission rate.</p>
+        <p class="form-section__hint">If the National Minimum Wage is ever raised above a Level's fixed rate, the booking system automatically corrects that rate up to the legal minimum.</p>
       </div>
 
       <div class="policy-section" id="full-day-rates">
         <h2>Full-Day Flat Rate Options</h2>
-        <p>As an alternative to hourly billing, Families booking a Day booking (Levels 1&ndash;3) may instead select a flat full-day rate for an 8-hour day. Multi-day bookings are billed in 8-hour blocks (2 days = 16 hours, and so on). The same commission rules above apply to full-day bookings.</p>
+        <p>As an alternative to hourly billing, Families booking a Day booking (Levels 1&ndash;3) may instead select the flat full-day rate for a 7-hour day. Multi-day bookings are billed in 7-hour blocks (2 days = 14 hours, and so on). The same commission split above applies to full-day bookings.</p>
         <div class="rate-table-wrap">
           <table class="rate-table">
-            <thead><tr><th>Level</th><th>Standard day rate</th><th>Premium day rate</th></tr></thead>
+            <thead><tr><th>Level</th><th>Flat day rate (7 hours)</th></tr></thead>
             <tbody>
-              <tr><td><span class="rate-badge">Level 1</span></td><td><strong>R280</strong>/day (R35/hr)</td><td><strong>R360</strong>/day (R45/hr)</td></tr>
-              <tr><td><span class="rate-badge">Level 2</span></td><td><strong>R360</strong>/day (R45/hr)</td><td><strong>R520</strong>/day (R65/hr)</td></tr>
-              <tr><td><span class="rate-badge">Level 3</span></td><td><strong>R520</strong>/day (R65/hr)</td><td><strong>R680</strong>/day (R85/hr)</td></tr>
+              <tr><td><span class="rate-badge">Level 1</span></td><td><strong>R315</strong>/day</td></tr>
+              <tr><td><span class="rate-badge">Level 2</span></td><td><strong>R385</strong>/day</td></tr>
+              <tr><td><span class="rate-badge">Level 3</span></td><td><strong>R450</strong>/day</td></tr>
             </tbody>
           </table>
         </div>
@@ -1291,29 +1283,30 @@ POLICIES_BODY = '''
       <div class="policy-section" id="booking-hours">
         <h2>Minimum Booking Hours</h2>
         <ul>
-          <li><strong>Day bookings:</strong> minimum 4 consecutive hours.</li>
-          <li><strong>Full-day flat rate bookings:</strong> billed in 8-hour blocks (1 day = 8 hours, 2 days = 16 hours, etc).</li>
-          <li><strong>Overnight bookings:</strong> minimum 10 consecutive hours, billed at the applicable overnight rate for the babysitter's level.</li>
+          <li><strong>Level 1 &amp; 2 day bookings:</strong> minimum 5 consecutive hours.</li>
+          <li><strong>Level 3 day bookings:</strong> minimum 4 consecutive hours.</li>
+          <li><strong>Full-day flat rate bookings:</strong> billed in 7-hour blocks (1 day = 7 hours, 2 days = 14 hours, etc).</li>
+          <li><strong>Overnight bookings (Level 3 &amp; 4):</strong> minimum 10 consecutive hours, billed at the applicable overnight rate for the babysitter's level.</li>
         </ul>
         <p>Bookings submitted below the applicable minimum are rejected by the booking system and must be resubmitted at or above the minimum duration.</p>
       </div>
 
       <div class="policy-section" id="commission">
         <h2>5.3 Commission Structure</h2>
-        <p>Elite Traders Lounge charges commission on <strong>both sides</strong> of every booking: the Family pays the babysitter's booking fee <em>plus</em> the commission percentage as an added charge, and the babysitter's payout has the same commission percentage deducted from their fee. Every booking is paid once, through Paystack Split Payment, at the Family's total amount (fee + family-side commission). Paystack automatically splits that single payment and pays the babysitter's net share (fee minus sitter-side commission) directly into the babysitter's own Paystack account, while Elite Traders Lounge's combined commission share is paid directly into Elite Traders Lounge's Paystack account &mdash; on the same transaction, with no wallet held by Elite Traders Lounge at any point. Worked examples:</p>
+        <p>Elite Traders Lounge's total commission is always <strong>20%</strong> of the babysitter's fee, charged on <strong>both sides</strong> of every booking: the Family pays the babysitter's booking fee <em>plus</em> a commission percentage as an added charge, and the babysitter's payout has a commission percentage deducted from their fee &mdash; the two percentages differ by Level but always add up to 20%. Every booking is paid once, through Paystack Split Payment, at the Family's total amount (fee + family-side commission). Paystack automatically splits that single payment and pays the babysitter's net share (fee minus sitter-side commission) directly into the babysitter's own Paystack account, while Elite Traders Lounge's combined commission share is paid directly into Elite Traders Lounge's Paystack account &mdash; on the same transaction, with no wallet held by Elite Traders Lounge at any point. Worked examples, at each Level's minimum booking:</p>
         <div class="rate-table-wrap">
           <table class="rate-table">
-            <thead><tr><th>Service component</th><th>Level</th><th>Babysitter fee</th><th>+ Family-side commission</th><th>= Family pays</th><th>&ndash; Sitter-side commission</th><th>Net to babysitter</th></tr></thead>
+            <thead><tr><th>Service component</th><th>Level</th><th>Babysitter fee</th><th>+ Family commission</th><th>= Family pays</th><th>&ndash; Sitter commission</th><th>Net to babysitter</th></tr></thead>
             <tbody>
-              <tr><td>4-hour booking @ R45/hour</td><td>Level 1 &ndash; Entry</td><td><strong>R180</strong></td><td>R18 (10%)</td><td><strong>R198</strong></td><td>R18 (10%)</td><td><strong>R162</strong></td></tr>
-              <tr><td>4-hour booking @ R65/hour</td><td>Level 2 &ndash; Standard</td><td><strong>R260</strong></td><td>R32.50 (12.5%)</td><td><strong>R292.50</strong></td><td>R32.50 (12.5%)</td><td><strong>R227.50</strong></td></tr>
-              <tr><td>4-hour booking @ R85/hour</td><td>Level 3 &ndash; Advanced</td><td><strong>R340</strong></td><td>R51 (15%)</td><td><strong>R391</strong></td><td>R51 (15%)</td><td><strong>R289</strong></td></tr>
-              <tr><td>10-hour overnight @ R80/hour</td><td>Level 3 &ndash; Night</td><td><strong>R800</strong></td><td>R100 (12.5%)</td><td><strong>R900</strong></td><td>R100 (12.5%)</td><td><strong>R700</strong></td></tr>
-              <tr><td>12-hour overnight @ R100/hour</td><td>Level 4 &ndash; Specialist</td><td><strong>R1 200</strong></td><td>R150 (12.5%)</td><td><strong>R1 350</strong></td><td>R150 (12.5%)</td><td><strong>R1 050</strong></td></tr>
+              <tr><td>5-hour day @ R45/hour</td><td>Level 1 &ndash; Entry</td><td><strong>R225</strong></td><td>R22.50 (10%)</td><td><strong>R247.50</strong></td><td>R22.50 (10%)</td><td><strong>R202.50</strong></td></tr>
+              <tr><td>5-hour day @ R55/hour</td><td>Level 2 &ndash; Standard</td><td><strong>R275</strong></td><td>R22 (8%)</td><td><strong>R297</strong></td><td>R33 (12%)</td><td><strong>R242</strong></td></tr>
+              <tr><td>4-hour day @ R65/hour</td><td>Level 3 &ndash; Advanced</td><td><strong>R260</strong></td><td>R19.50 (7.5%)</td><td><strong>R279.50</strong></td><td>R32.50 (12.5%)</td><td><strong>R227.50</strong></td></tr>
+              <tr><td>10-hour overnight @ R70/hour</td><td>Level 3 &ndash; Night</td><td><strong>R700</strong></td><td>R70 (10%)</td><td><strong>R770</strong></td><td>R70 (10%)</td><td><strong>R630</strong></td></tr>
+              <tr><td>10-hour overnight @ R85/hour</td><td>Level 4 &ndash; Specialist</td><td><strong>R850</strong></td><td>R85 (10%)</td><td><strong>R935</strong></td><td>R85 (10%)</td><td><strong>R765</strong></td></tr>
             </tbody>
           </table>
         </div>
-        <p class="form-section__hint">Elite Traders Lounge's total revenue per booking is the sum of both commission amounts (family-side + sitter-side) &mdash; e.g. R36 total on the Level 1 example above.</p>
+        <p class="form-section__hint">Elite Traders Lounge's total revenue per booking is the sum of both commission amounts (family-side + sitter-side) &mdash; always 20% of the babysitter's fee, e.g. R45 total on the Level 1 example above.</p>
       </div>
 
       <div class="policy-section" id="refund-policy">
@@ -1512,7 +1505,7 @@ TERMS_BODY = '''
           <li>All booking payments are processed through <strong>Paystack</strong> using Paystack's Split Payment functionality. A Family's payment for a booking is made once, and Paystack automatically splits and pays the Babysitter's net share directly to the Babysitter's own Paystack account and Elite Traders Lounge's commission share directly to Elite Traders Lounge's own Paystack account, on the same transaction.</li>
           <li>Both Babysitters and Families must hold their own active Paystack account and supply the email address linked to that account at registration, so Elite Traders Lounge can confirm the account exists before enabling payouts or bookings.</li>
           <li><strong>Elite Traders Lounge does not hold, custody, or accept responsibility for any wallet balance.</strong> Funds in transit are held and disbursed by Paystack as the payment processor, subject to Paystack's own terms of service; Elite Traders Lounge's role is limited to configuring the commission split and facilitating bookings.</li>
-          <li>Commission rates (10%&ndash;15% depending on level and booking type, per Appendix C) are unchanged and are deducted automatically as part of the Paystack split &mdash; no additional platform or service fee is charged on top of this commission.</li>
+          <li>Total commission is always 20% of the babysitter's fee, split between the Family and the Babysitter at a ratio that depends on level and booking type (per Appendix C) and deducted automatically as part of the Paystack split &mdash; no additional platform or service fee is charged on top of this commission.</li>
           <li>Refunds for eligible cancellations (see <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>) are issued via Paystack back to the Family's original payment method.</li>
           <li><strong>Annual registration &amp; verification fee &mdash; R99.</strong> Every Babysitter and every Family pays an R99 fee to cover identity and document verification, payable via the Paystack payment link provided on the registration and booking forms. This fee is completely separate from, and in addition to, the booking commission described above, and is not refundable once verification has begun. Because Babysitters must renew their Police Clearance Certificate and Child Protection Register clearance every 12 months, and Families' identity details are re-confirmed on the same cycle, this fee is charged annually rather than once &mdash; it is due again 12 months after it was last confirmed paid.</li>
         </ul>

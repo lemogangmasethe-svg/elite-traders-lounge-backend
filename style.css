@@ -1298,6 +1298,22 @@ table.rate-table {
   outline: 2px solid oklch(from var(--color-secondary) l c h / 0.25);
   outline-offset: 1px;
 }
+.field input[readonly] {
+  background: var(--color-surface-alt, var(--color-surface));
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+.field .field__static {
+  width: 100%;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt, var(--color-surface));
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
 .field textarea {
   min-height: 6rem;
   resize: vertical;

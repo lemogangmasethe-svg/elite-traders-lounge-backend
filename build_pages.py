@@ -936,7 +936,8 @@ BOOK_BODY = '''
             <div class="field">
               <label>Booking type</label>
               <div class="action-toggle">
-                <label><input type="radio" name="rate_type" value="day" checked /> Day booking <span class="field__hint">(min. 4 hours)</span></label>
+                <label><input type="radio" name="rate_type" value="day" checked /> Day booking <span class="field__hint">(min. 4 hours, hourly)</span></label>
+                <label><input type="radio" name="rate_type" value="full_day" /> Full-day flat rate <span class="field__hint">(8 hours, select a day rate)</span></label>
                 <label><input type="radio" name="rate_type" value="overnight" /> Overnight <span class="field__hint">(min. 10 hours)</span></label>
               </div>
             </div>
@@ -950,6 +951,23 @@ BOOK_BODY = '''
                   <option value="3">Level 3 &mdash; Advanced</option>
                   <option value="4">Level 4 &mdash; Specialist (overnight only)</option>
                 </select>
+              </div>
+              <div class="field" id="day-rate-field" hidden>
+                <label for="day_rate_preset">Select a day rate</label>
+                <select id="day_rate_preset">
+                  <option value="">Choose a day rate...</option>
+                  <option data-level="1" value="35">Level 1 &mdash; Standard (R280/day)</option>
+                  <option data-level="1" value="45">Level 1 &mdash; Premium (R360/day)</option>
+                  <option data-level="2" value="45">Level 2 &mdash; Standard (R360/day)</option>
+                  <option data-level="2" value="65">Level 2 &mdash; Premium (R520/day)</option>
+                  <option data-level="3" value="65">Level 3 &mdash; Standard (R520/day)</option>
+                  <option data-level="3" value="85">Level 3 &mdash; Premium (R680/day)</option>
+                </select>
+                <span class="field__hint">Flat price for an 8-hour day, based on the Level's hourly band (Appendix C).</span>
+              </div>
+              <div class="field" id="day-count-field" hidden>
+                <label for="day_count">Number of days</label>
+                <input type="number" id="day_count" min="1" step="1" value="1" />
               </div>
               <div class="field">
                 <label for="hourly_rate">Agreed hourly rate (R)</label>
@@ -981,9 +999,11 @@ BOOK_BODY = '''
             <div class="quote-box" id="quote-box" hidden>
               <div class="quote-box__row"><span>Applied hourly rate</span><strong id="q-rate">&ndash;</strong></div>
               <div class="quote-box__row"><span>Duration</span><strong id="q-duration">&ndash;</strong></div>
-              <div class="quote-box__row"><span>Commission (<span id="q-comm-pct">&ndash;</span>)</span><strong id="q-comm">&ndash;</strong></div>
-              <div class="quote-box__row total"><span>Total booking fee</span><strong id="q-fee">&ndash;</strong></div>
-              <div class="quote-box__row"><span>Net to babysitter</span><strong id="q-net">&ndash;</strong></div>
+              <div class="quote-box__row"><span>Babysitter's booking fee (rate &times; hours)</span><strong id="q-fee">&ndash;</strong></div>
+              <div class="quote-box__row"><span>+ Elite Traders Lounge commission (<span id="q-comm-pct">&ndash;</span>, added to your bill)</span><strong id="q-family-comm">&ndash;</strong></div>
+              <div class="quote-box__row total"><span>Total you pay as the Family</span><strong id="q-family-total">&ndash;</strong></div>
+              <div class="quote-box__row"><span>&ndash; Elite Traders Lounge commission (deducted from babysitter)</span><strong id="q-comm">&ndash;</strong></div>
+              <div class="quote-box__row total"><span>Net the babysitter receives</span><strong id="q-net">&ndash;</strong></div>
               <p class="quote-box__note" id="q-note" hidden></p>
             </div>
           </div>
@@ -1253,10 +1273,26 @@ POLICIES_BODY = '''
         <p class="form-section__hint">Level 3 day commission scales from 12.5% at R65/hour up to 15% at R85/hour. All other bands charge a flat commission rate.</p>
       </div>
 
+      <div class="policy-section" id="full-day-rates">
+        <h2>Full-Day Flat Rate Options</h2>
+        <p>As an alternative to hourly billing, Families booking a Day booking (Levels 1&ndash;3) may instead select a flat full-day rate for an 8-hour day. Multi-day bookings are billed in 8-hour blocks (2 days = 16 hours, and so on). The same commission rules above apply to full-day bookings.</p>
+        <div class="rate-table-wrap">
+          <table class="rate-table">
+            <thead><tr><th>Level</th><th>Standard day rate</th><th>Premium day rate</th></tr></thead>
+            <tbody>
+              <tr><td><span class="rate-badge">Level 1</span></td><td><strong>R280</strong>/day (R35/hr)</td><td><strong>R360</strong>/day (R45/hr)</td></tr>
+              <tr><td><span class="rate-badge">Level 2</span></td><td><strong>R360</strong>/day (R45/hr)</td><td><strong>R520</strong>/day (R65/hr)</td></tr>
+              <tr><td><span class="rate-badge">Level 3</span></td><td><strong>R520</strong>/day (R65/hr)</td><td><strong>R680</strong>/day (R85/hr)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="policy-section" id="booking-hours">
         <h2>Minimum Booking Hours</h2>
         <ul>
           <li><strong>Day bookings:</strong> minimum 4 consecutive hours.</li>
+          <li><strong>Full-day flat rate bookings:</strong> billed in 8-hour blocks (1 day = 8 hours, 2 days = 16 hours, etc).</li>
           <li><strong>Overnight bookings:</strong> minimum 10 consecutive hours, billed at the applicable overnight rate for the babysitter's level.</li>
         </ul>
         <p>Bookings submitted below the applicable minimum are rejected by the booking system and must be resubmitted at or above the minimum duration.</p>
@@ -1264,19 +1300,20 @@ POLICIES_BODY = '''
 
       <div class="policy-section" id="commission">
         <h2>5.3 Commission Structure</h2>
-        <p>Every booking is paid once, through Paystack Split Payment. Paystack automatically splits that single payment and pays the babysitter's net share directly into the babysitter's own Paystack account, while Elite Traders Lounge's commission share is paid directly into Elite Traders Lounge's Paystack account &mdash; on the same transaction, with no wallet held by Elite Traders Lounge at any point. Worked examples:</p>
+        <p>Elite Traders Lounge charges commission on <strong>both sides</strong> of every booking: the Family pays the babysitter's booking fee <em>plus</em> the commission percentage as an added charge, and the babysitter's payout has the same commission percentage deducted from their fee. Every booking is paid once, through Paystack Split Payment, at the Family's total amount (fee + family-side commission). Paystack automatically splits that single payment and pays the babysitter's net share (fee minus sitter-side commission) directly into the babysitter's own Paystack account, while Elite Traders Lounge's combined commission share is paid directly into Elite Traders Lounge's Paystack account &mdash; on the same transaction, with no wallet held by Elite Traders Lounge at any point. Worked examples:</p>
         <div class="rate-table-wrap">
           <table class="rate-table">
-            <thead><tr><th>Service component</th><th>Level</th><th>Babysitter fee</th><th>Elite Traders Lounge commission</th><th>Net to babysitter</th></tr></thead>
+            <thead><tr><th>Service component</th><th>Level</th><th>Babysitter fee</th><th>+ Family-side commission</th><th>= Family pays</th><th>&ndash; Sitter-side commission</th><th>Net to babysitter</th></tr></thead>
             <tbody>
-              <tr><td>4-hour booking @ R45/hour</td><td>Level 1 &ndash; Entry</td><td><strong>R180</strong></td><td>R18 (10%)</td><td><strong>R162</strong></td></tr>
-              <tr><td>4-hour booking @ R65/hour</td><td>Level 2 &ndash; Standard</td><td><strong>R260</strong></td><td>R32.50 (12.5%)</td><td><strong>R227.50</strong></td></tr>
-              <tr><td>4-hour booking @ R85/hour</td><td>Level 3 &ndash; Advanced</td><td><strong>R340</strong></td><td>R51 (15%)</td><td><strong>R289</strong></td></tr>
-              <tr><td>10-hour overnight @ R80/hour</td><td>Level 3 &ndash; Night</td><td><strong>R800</strong></td><td>R100 (12.5%)</td><td><strong>R700</strong></td></tr>
-              <tr><td>12-hour overnight @ R100/hour</td><td>Level 4 &ndash; Specialist</td><td><strong>R1 200</strong></td><td>R150 (12.5%)</td><td><strong>R1 050</strong></td></tr>
+              <tr><td>4-hour booking @ R45/hour</td><td>Level 1 &ndash; Entry</td><td><strong>R180</strong></td><td>R18 (10%)</td><td><strong>R198</strong></td><td>R18 (10%)</td><td><strong>R162</strong></td></tr>
+              <tr><td>4-hour booking @ R65/hour</td><td>Level 2 &ndash; Standard</td><td><strong>R260</strong></td><td>R32.50 (12.5%)</td><td><strong>R292.50</strong></td><td>R32.50 (12.5%)</td><td><strong>R227.50</strong></td></tr>
+              <tr><td>4-hour booking @ R85/hour</td><td>Level 3 &ndash; Advanced</td><td><strong>R340</strong></td><td>R51 (15%)</td><td><strong>R391</strong></td><td>R51 (15%)</td><td><strong>R289</strong></td></tr>
+              <tr><td>10-hour overnight @ R80/hour</td><td>Level 3 &ndash; Night</td><td><strong>R800</strong></td><td>R100 (12.5%)</td><td><strong>R900</strong></td><td>R100 (12.5%)</td><td><strong>R700</strong></td></tr>
+              <tr><td>12-hour overnight @ R100/hour</td><td>Level 4 &ndash; Specialist</td><td><strong>R1 200</strong></td><td>R150 (12.5%)</td><td><strong>R1 350</strong></td><td>R150 (12.5%)</td><td><strong>R1 050</strong></td></tr>
             </tbody>
           </table>
         </div>
+        <p class="form-section__hint">Elite Traders Lounge's total revenue per booking is the sum of both commission amounts (family-side + sitter-side) &mdash; e.g. R36 total on the Level 1 example above.</p>
       </div>
 
       <div class="policy-section" id="refund-policy">

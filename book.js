@@ -18,7 +18,15 @@
     '3|overnight': { min: 70, max: 80, commission: function () { return 0.125; } },
     '4|overnight': { min: 90, max: 100, commission: function () { return 0.125; } },
   };
-  var MIN_HOURS = { day: 4, overnight: 10 };
+  var FULL_DAY_HOURS = 8;
+  var MIN_HOURS = { day: 4, overnight: 10, full_day: FULL_DAY_HOURS };
+  // Flat day-rate presets — Level 1-3 hourly band floor/ceiling × an 8-hour
+  // standard day. Reuses the "day" band above for validation and commission.
+  var FULL_DAY_PRESETS = {
+    '1': [35, 45],
+    '2': [45, 65],
+    '3': [65, 85],
+  };
 
   var API_ORIGIN = (window.ETL_API && window.ETL_API.base) || '';
 
@@ -136,8 +144,14 @@
   var qCommPct = document.getElementById('q-comm-pct');
   var qComm = document.getElementById('q-comm');
   var qFee = document.getElementById('q-fee');
+  var qFamilyComm = document.getElementById('q-family-comm');
+  var qFamilyTotal = document.getElementById('q-family-total');
   var qNet = document.getElementById('q-net');
   var qNote = document.getElementById('q-note');
+  var dayRateField = document.getElementById('day-rate-field');
+  var dayRateSelect = document.getElementById('day_rate_preset');
+  var dayCountField = document.getElementById('day-count-field');
+  var dayCountInput = document.getElementById('day_count');
 
   // Babysitter browse: fetch verified sitters and show live availability based on chosen date/time/duration
   var sitterBrowseList = document.getElementById('sitter-browse-list');
@@ -259,9 +273,18 @@
     return 'R' + n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function bandLookupType(type) {
+    return type === 'full_day' ? 'day' : type;
+  }
+
   function bandLabel(level, type) {
-    var band = RATE_BANDS[level + '|' + type];
-    if (!band) return 'This level does not support ' + type + ' bookings.';
+    var band = RATE_BANDS[level + '|' + bandLookupType(type)];
+    if (!band) return 'This level does not support ' + (type === 'full_day' ? 'full-day' : type) + ' bookings.';
+    if (type === 'full_day') {
+      var preset = FULL_DAY_PRESETS[level];
+      if (!preset) return 'This level does not support full-day bookings.';
+      return 'Level ' + level + ' full-day flat rate: R' + (preset[0] * FULL_DAY_HOURS) + '\u2013R' + (preset[1] * FULL_DAY_HOURS) + '/day (' + FULL_DAY_HOURS + ' hours)';
+    }
     return 'Level ' + level + ' ' + type + ' band: R' + band.min + '\u2013R' + band.max + '/hour';
   }
 
@@ -272,7 +295,7 @@
   function updateLevelOptions() {
     var type = rateType();
     Array.prototype.forEach.call(levelSel.options, function (opt) {
-      var ok = !!RATE_BANDS[opt.value + '|' + type];
+      var ok = !!RATE_BANDS[opt.value + '|' + bandLookupType(type)];
       opt.disabled = !ok;
     });
     var current = levelSel.options[levelSel.selectedIndex];
@@ -285,6 +308,7 @@
       }
     }
     updateHint();
+    updateDayRateField();
   }
 
   function recalcQuote() {
@@ -292,7 +316,7 @@
     var type = rateType();
     var rate = parseFloat(rateInput.value);
     var duration = parseFloat(durationInput.value);
-    var band = RATE_BANDS[level + '|' + type];
+    var band = RATE_BANDS[level + '|' + bandLookupType(type)];
 
     if (!band || isNaN(rate) || isNaN(duration) || rate <= 0 || duration <= 0) {
       quoteBox.hidden = true;
@@ -308,20 +332,30 @@
     } else if (rate > band.max) {
       note = 'Your rate is above the Level ' + level + ' band ceiling (' + fmtR(band.max) + '/hour) \u2014 allowed, since only the floor is enforced.';
     }
-    if (duration < minHours) {
+    if (type === 'full_day') {
+      if (duration < minHours || duration % minHours !== 0) {
+        note = (note ? note + ' ' : '') + 'Full-day bookings are billed in ' + minHours + '-hour blocks (1 day = ' + minHours + ' hours, 2 days = ' + (minHours * 2) + ' hours, etc.).';
+      }
+    } else if (duration < minHours) {
       note = (note ? note + ' ' : '') + 'Minimum booking length for a ' + type + ' booking is ' + minHours + ' hours \u2014 your request will be rejected until duration is increased.';
     }
 
+    // Two-sided commission: the same commission rate is added on top of the
+    // Family's bill AND deducted from the Babysitter's payout.
     var commRate = band.commission(applied);
     var fee = Math.round(applied * duration * 100) / 100;
-    var comm = Math.round(fee * commRate * 100) / 100;
-    var net = Math.round((fee - comm) * 100) / 100;
+    var familyComm = Math.round(fee * commRate * 100) / 100;
+    var familyTotal = Math.round((fee + familyComm) * 100) / 100;
+    var sitterComm = Math.round(fee * commRate * 100) / 100;
+    var net = Math.round((fee - sitterComm) * 100) / 100;
 
     qRate.textContent = fmtR(applied) + '/hr';
-    qDuration.textContent = duration + ' hours';
+    qDuration.textContent = duration + ' hours' + (type === 'full_day' ? ' (' + (duration / FULL_DAY_HOURS) + ' day' + (duration / FULL_DAY_HOURS === 1 ? '' : 's') + ')' : '');
     qCommPct.textContent = (commRate * 100).toFixed(1).replace(/\.0$/, '') + '%';
-    qComm.textContent = fmtR(comm);
+    qComm.textContent = fmtR(sitterComm);
     qFee.textContent = fmtR(fee);
+    if (qFamilyComm) qFamilyComm.textContent = fmtR(familyComm);
+    if (qFamilyTotal) qFamilyTotal.textContent = fmtR(familyTotal);
     qNet.textContent = fmtR(net);
     if (note) {
       qNote.textContent = note;
@@ -332,6 +366,56 @@
     quoteBox.hidden = false;
   }
 
+  function updateDayRateField() {
+    var type = rateType();
+    var isFullDay = type === 'full_day';
+    if (dayRateField) dayRateField.hidden = !isFullDay;
+    if (dayCountField) dayCountField.hidden = !isFullDay;
+    var rateField = rateInput ? rateInput.closest('.field') : null;
+    var durationField = durationInput ? durationInput.closest('.field') : null;
+    if (rateField) rateField.hidden = isFullDay;
+    if (durationField) durationField.hidden = isFullDay;
+    if (rateInput) rateInput.required = !isFullDay;
+    if (durationInput) durationInput.required = !isFullDay;
+    if (!isFullDay) return;
+
+    var level = levelSel.value;
+    if (dayRateSelect) {
+      Array.prototype.forEach.call(dayRateSelect.options, function (opt) {
+        if (!opt.value) return;
+        opt.hidden = opt.getAttribute('data-level') !== level;
+      });
+      var current = dayRateSelect.options[dayRateSelect.selectedIndex];
+      if (!current || current.hidden || !current.value) {
+        for (var i = 0; i < dayRateSelect.options.length; i++) {
+          var opt = dayRateSelect.options[i];
+          if (opt.value && opt.getAttribute('data-level') === level) {
+            dayRateSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+    applyDayRateSelection();
+  }
+
+  function applyDayRateSelection() {
+    if (!dayRateSelect) return;
+    var selected = dayRateSelect.options[dayRateSelect.selectedIndex];
+    var hourly = selected ? parseFloat(selected.value) : NaN;
+    var days = parseInt((dayCountInput && dayCountInput.value) || '1', 10);
+    if (!days || days < 1) days = 1;
+    if (dayCountInput) dayCountInput.value = days;
+    if (!isNaN(hourly) && hourly > 0) {
+      rateInput.value = hourly;
+      durationInput.value = days * FULL_DAY_HOURS;
+    } else {
+      rateInput.value = '';
+      durationInput.value = '';
+    }
+    recalcQuote();
+  }
+
   form.querySelectorAll('input[name="rate_type"]').forEach(function (el) {
     el.addEventListener('change', function () {
       updateLevelOptions();
@@ -340,10 +424,13 @@
   });
   levelSel.addEventListener('change', function () {
     updateHint();
+    updateDayRateField();
     recalcQuote();
   });
   rateInput.addEventListener('input', recalcQuote);
   durationInput.addEventListener('input', recalcQuote);
+  if (dayRateSelect) dayRateSelect.addEventListener('change', applyDayRateSelection);
+  if (dayCountInput) dayCountInput.addEventListener('input', applyDayRateSelection);
   updateLevelOptions();
 
   var submitBtn = document.getElementById('booking-submit');

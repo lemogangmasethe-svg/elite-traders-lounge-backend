@@ -642,7 +642,11 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 LEVELS = {"1", "2", "3", "4"}
-RATE_TYPES = {"day", "overnight"}
+# "full_day" is a flat-price alternative to hourly "day" billing — the family
+# picks a preset day rate (Appendix C band floor or ceiling × 8 hours) instead
+# of typing an hourly rate. It reuses the "day" rate band for that level, so
+# it's only available on Levels 1-3, same as hourly day bookings.
+RATE_TYPES = {"day", "overnight", "full_day"}
 ROLES = {"sitter", "parent"}
 ACTIONS = {"arrival", "departure"}
 
@@ -658,7 +662,15 @@ RATE_BANDS = {
     ("3", "overnight"): {"min": 70, "max": 80, "commission": lambda r: 0.125},
     ("4", "overnight"): {"min": 90, "max": 100, "commission": lambda r: 0.125},
 }
-MIN_HOURS = {"day": 4, "overnight": 10}
+FULL_DAY_HOURS = 8
+# Flat day-rate presets shown on the booking form — the Appendix C hourly band
+# floor and ceiling for that level, multiplied by an 8-hour standard day.
+FULL_DAY_PRESETS = {
+    "1": [35, 45],
+    "2": [45, 65],
+    "3": [65, 85],
+}
+MIN_HOURS = {"day": 4, "overnight": 10, "full_day": FULL_DAY_HOURS}
 
 
 def now_iso() -> str:
@@ -965,7 +977,7 @@ class BookingRequest(BaseModel):
     @classmethod
     def check_rate_type(cls, v):
         if v not in RATE_TYPES:
-            raise ValueError("rate_type must be 'day' or 'overnight'")
+            raise ValueError("rate_type must be 'day', 'overnight', or 'full_day'")
         return v
 
     @field_validator("agreed_terms")
@@ -1007,11 +1019,18 @@ class CheckinRequest(BaseModel):
 
 
 def compute_rate_check(level: str, rate_type: str, hourly_rate: float, duration_hours: float):
-    band = RATE_BANDS.get((level, rate_type))
+    # "full_day" is a flat-price booking (a preset day rate × 8-hour blocks)
+    # that reuses the hourly "day" band for that level for validation and
+    # commission purposes — only the label and minimum-hours check differ.
+    band_lookup_type = "day" if rate_type == "full_day" else rate_type
+    band = RATE_BANDS.get((level, band_lookup_type))
     if band is None:
-        raise HTTPException(422, f"Level {level} has no {rate_type} rate band. Level 1 and 2 are day-only; Level 3 supports day and overnight; Level 4 is overnight/specialist only.")
+        raise HTTPException(422, f"Level {level} has no {rate_type} rate band. Level 1 and 2 are day/full-day only; Level 3 supports day, full-day, and overnight; Level 4 is overnight/specialist only.")
     min_hours = MIN_HOURS[rate_type]
-    if duration_hours < min_hours:
+    if rate_type == "full_day":
+        if duration_hours < min_hours or duration_hours % min_hours != 0:
+            raise HTTPException(422, f"Full-day bookings are billed in {min_hours}-hour blocks (1 day = {min_hours} hours, 2 days = {min_hours * 2} hours, etc.).")
+    elif duration_hours < min_hours:
         raise HTTPException(422, f"Minimum booking length for a {rate_type} booking is {min_hours} hours.")
     applied_rate = hourly_rate
     compliance_note = "within band"
@@ -1021,16 +1040,25 @@ def compute_rate_check(level: str, rate_type: str, hourly_rate: float, duration_
     elif hourly_rate > band["max"]:
         compliance_note = f"rate is above the Level {level} {rate_type} band ceiling (R{band['max']}/hour) — allowed, since only the floor is enforced"
     commission_rate = round(band["commission"](applied_rate), 4)
+    # Two-sided commission: Elite Traders Lounge's commission is now charged
+    # on BOTH sides of the booking — added on top of what the Family pays,
+    # AND deducted from what the Babysitter is paid out (the sitter-side
+    # deduction is unchanged from the original single-sided model).
     fee = round(applied_rate * duration_hours, 2)
-    commission = round(fee * commission_rate, 2)
-    net = round(fee - commission, 2)
+    family_commission_amount = round(fee * commission_rate, 2)
+    family_total = round(fee + family_commission_amount, 2)
+    sitter_commission_amount = round(fee * commission_rate, 2)
+    net_to_babysitter = round(fee - sitter_commission_amount, 2)
     return {
         "applied_hourly_rate": applied_rate,
         "compliance_note": compliance_note,
         "commission_rate": commission_rate,
         "babysitter_fee": fee,
-        "commission_amount": commission,
-        "net_to_babysitter": net,
+        "family_commission_amount": family_commission_amount,
+        "family_total": family_total,
+        "commission_amount": sitter_commission_amount,
+        "sitter_commission_amount": sitter_commission_amount,
+        "net_to_babysitter": net_to_babysitter,
     }
 
 
@@ -1900,7 +1928,7 @@ class AdminManualBookingRequest(BaseModel):
     @classmethod
     def check_rate_type(cls, v):
         if v not in RATE_TYPES:
-            raise ValueError("rate_type must be 'day' or 'overnight'")
+            raise ValueError("rate_type must be 'day', 'overnight', or 'full_day'")
         return v
 
 

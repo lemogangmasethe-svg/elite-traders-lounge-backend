@@ -102,6 +102,8 @@ S_CALLOUT = pstyle("Callout", fontName=F_BODY, fontSize=9, leading=13, textColor
 S_LI = pstyle("LI", fontName=F_BODY, fontSize=9.5, leading=13.5, spaceAfter=3)
 S_SIG = pstyle("Sig", fontName=F_BODY, fontSize=9, leading=16, spaceAfter=2)
 S_FOOT = pstyle("Foot", fontName=F_BODY, fontSize=7.5, leading=10, textColor=MUTED)
+S_TCELL = pstyle("TCell", fontName=F_BODY, fontSize=7.5, leading=9.5, spaceAfter=0)
+S_TCELL_HD = pstyle("TCellHead", fontName=F_BODY_B, fontSize=7.5, leading=9.5, textColor=colors.white, spaceAfter=0)
 
 def bullets(items, style=S_LI):
     return ListFlowable(
@@ -117,6 +119,7 @@ def rate_table():
         ["3", "Advanced · 3+ yrs, First Aid/CPR", "Day", "R65 – R85/hr", "4 hours", "12.5% – 15%"],
         ["3", "Advanced · night rate", "Overnight", "R70 – R80/hr", "10 hours", "12.5%"],
         ["4", "Specialist · overnight/special needs", "Overnight", "R90 – R100/hr", "10 hours", "12.5%"],
+        ["1–3", "Full-day flat rate", "Full-day", "R280 – R680/day", "8 hours", "Same as Day"],
     ]
     t = Table(data, colWidths=[28, 130, 62, 82, 58, 62], repeatRows=1)
     t.setStyle(TableStyle([
@@ -135,25 +138,26 @@ def rate_table():
     return t
 
 def commission_table():
-    data = [
-        ["Service component", "Level", "Booking fee", "ETL commission", "Net to babysitter"],
-        ["4-hr @ R45/hr", "1 – Entry", "R180", "R18 (10%)", "R162"],
-        ["4-hr @ R65/hr", "2 – Standard", "R260", "R32.50 (12.5%)", "R227.50"],
-        ["4-hr @ R85/hr", "3 – Advanced", "R340", "R51 (15%)", "R289"],
-        ["10-hr overnight @ R80/hr", "3 – Night", "R800", "R100 (12.5%)", "R700"],
-        ["12-hr overnight @ R100/hr", "4 – Specialist", "R1 200", "R150 (12.5%)", "R1 050"],
+    headers = ["Service component", "Level", "Sitter fee", "+ Family commission", "= Family pays", "– Sitter commission", "Net to babysitter"]
+    rows = [
+        ["4-hr @ R45/hr", "1 – Entry", "R180", "R18 (10%)", "R198", "R18 (10%)", "R162"],
+        ["4-hr @ R65/hr", "2 – Standard", "R260", "R32.50 (12.5%)", "R292.50", "R32.50 (12.5%)", "R227.50"],
+        ["4-hr @ R85/hr", "3 – Advanced", "R340", "R51 (15%)", "R391", "R51 (15%)", "R289"],
+        ["10-hr overnight @ R80/hr", "3 – Night", "R800", "R100 (12.5%)", "R900", "R100 (12.5%)", "R700"],
+        ["12-hr overnight @ R100/hr", "4 – Specialist", "R1 200", "R150 (12.5%)", "R1 350", "R150 (12.5%)", "R1 050"],
     ]
-    t = Table(data, colWidths=[130, 68, 62, 84, 78], repeatRows=1)
+    data = [[Paragraph(h, S_TCELL_HD) for h in headers]]
+    for row in rows:
+        data.append([Paragraph(cell, S_TCELL) for cell in row])
+    t = Table(data, colWidths=[80, 48, 42, 68, 55, 68, 60], repeatRows=1)
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), SECONDARY),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), F_BODY_B),
-        ("FONTNAME", (0, 1), (-1, -1), F_BODY),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("GRID", (0, 0), (-1, -1), 0.5, LINE),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, FAINT_BG]),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
     return t
@@ -271,8 +275,8 @@ def paystack_section(party):
     items = [
         "Elite Traders Lounge does not hold, custody, or take responsibility for any Family or Babysitter funds at any point. All payments are processed through <b>Paystack</b>, a licensed South African payment service provider, using Paystack's Split Payment functionality.",
         "Every " + ("Babysitter" if is_sitter else "Family") + " must have an active Paystack account and must supply the associated Paystack account email address during registration, so Elite Traders Lounge can confirm the account exists before enabling split payments.",
-        "When a booking fee is paid, Paystack's Split Payment infrastructure divides the transaction automatically: the Babysitter's net amount is paid into the Babysitter's own linked Paystack account, and Elite Traders Lounge's commission (per the rate bands in Appendix B) is paid into Elite Traders Lounge's Paystack account, in the same transaction.",
-        "No additional Elite Traders Lounge service or platform fee is charged on top of the commission rates in Appendix B. Paystack's own standard transaction-processing fees (charged by Paystack, not by Elite Traders Lounge) may apply to a payment and are governed by Paystack's own published pricing, not by this Agreement.",
+        "Elite Traders Lounge charges its commission (per the rate bands in Appendix B) on <b>both sides</b> of every booking, at the same rate: the Family's total payment is the Babysitter's agreed fee <b>plus</b> this commission, added as an extra charge; the Babysitter's payout is the same agreed fee <b>minus</b> this commission, deducted before payout. When the Family's total payment is made, Paystack's Split Payment infrastructure divides that single transaction automatically: the Babysitter's net amount (fee minus the Babysitter-side commission) is paid into the Babysitter's own linked Paystack account, and Elite Traders Lounge's combined commission share (the Family-side amount plus the Babysitter-side amount) is paid into Elite Traders Lounge's Paystack account, in the same transaction.",
+        "No separate Elite Traders Lounge service or platform fee is charged in addition to the two commission amounts described above. Paystack's own standard transaction-processing fees (charged by Paystack, not by Elite Traders Lounge) may apply to a payment and are governed by Paystack's own published pricing, not by this Agreement.",
         "Because Paystack — not Elite Traders Lounge — holds and settles the funds, actual payout timing to a Babysitter's Paystack account follows Paystack's standard settlement schedule. Elite Traders Lounge is not liable for delays caused by Paystack, the Babysitter's or Family's bank, or incorrect Paystack account details supplied by either party.",
         "Cash payments or any payment arranged outside Paystack fall entirely outside this Agreement and outside Elite Traders Lounge's dispute-resolution, fraud-protection, and payment-guarantee processes.",
     ]
@@ -367,7 +371,7 @@ def build_babysitter_pdf():
     story.append(Paragraph("Level 3 day commission scales from 12.5% at R65/hour up to 15% at R85/hour. All other bands charge a flat commission rate. Day bookings require a minimum of 4 consecutive hours; overnight bookings require a minimum of 10 consecutive hours.", S_ITALIC))
 
     story.append(Paragraph("5. Commission Structure", S_H1))
-    story.append(Paragraph("Elite Traders Lounge's commission is deducted from the total booking fee before the net amount is split to the Babysitter's Paystack account. Worked examples:", S_BODY))
+    story.append(Paragraph("Elite Traders Lounge charges its commission (10–15%, per Appendix B) on both sides of every booking: the Family's total payment is the Babysitter's agreed fee plus this commission as an added charge, and the Babysitter has the same commission deducted from their fee before payout. Worked examples:", S_BODY))
     story.append(commission_table())
 
     story.append(Paragraph("6. Payments — Paystack Split Payments", S_H1))
@@ -497,7 +501,7 @@ def build_family_pdf():
     story.append(Paragraph("Day bookings require a minimum of 4 consecutive hours; overnight bookings require a minimum of 10 consecutive hours.", S_ITALIC))
 
     story.append(Paragraph("5. Commission Structure", S_H1))
-    story.append(Paragraph("Elite Traders Lounge's commission (10–15%, per Appendix B) is deducted from the total booking fee the Family pays before the net amount is split to the Babysitter's Paystack account. Worked examples:", S_BODY))
+    story.append(Paragraph("Elite Traders Lounge charges its commission (10–15%, per Appendix B) on both sides of every booking: the Family's total payment is the Babysitter's agreed fee plus this commission as an added charge, and the Babysitter has the same commission deducted from their fee before payout. Worked examples:", S_BODY))
     story.append(commission_table())
 
     story.append(Paragraph("6. Payments — Paystack Split Payments", S_H1))

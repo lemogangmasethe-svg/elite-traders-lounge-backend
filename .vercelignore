@@ -1,0 +1,13 @@
+# Never serve backend source code, database files, or internal docs as public static files.
+# Vercel treats every file in this folder as a public asset unless excluded here —
+# .gitignore alone does NOT stop Vercel from serving a file.
+
+*.py
+*.db
+requirements.txt
+.gitignore
+audio-scripts/
+assets/contracts/
+*.md
+Procfile
+runtime.txt

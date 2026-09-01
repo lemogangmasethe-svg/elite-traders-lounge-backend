@@ -288,6 +288,22 @@ a:hover {
   background: var(--color-surface-offset);
 }
 
+.btn--danger {
+  background: var(--color-error);
+  color: #fff8f4;
+  box-shadow: var(--shadow-sm);
+}
+.btn--danger:hover {
+  background: var(--color-error);
+  filter: brightness(0.9);
+  color: #fff8f4;
+  box-shadow: var(--shadow-md);
+}
+.btn--danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn--sm {
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-xs);
@@ -2149,6 +2165,16 @@ table.rate-table {
   font-size: var(--text-sm);
   margin-top: var(--space-3);
 }
+[data-theme='dark'] .btn--danger {
+  background: #b33a3a;
+  color: #fff8f4;
+}
+[data-theme='dark'] .btn--danger:hover {
+  background: #c94848;
+  filter: none;
+  color: #fff8f4;
+}
+
 [data-theme='dark'] .clash-warning {
   color: var(--color-text);
 }
@@ -2319,6 +2345,12 @@ table.rate-table {
   color: var(--color-text-faint);
   text-align: center;
   flex-shrink: 0;
+}
+.dash-card__photo-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
 }
 
 /* --- Manual booking modal --- */

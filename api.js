@@ -88,6 +88,20 @@ window.ETL_API = (function () {
     return await res.blob();
   }
 
+  async function deleteAuth(path, headers) {
+    var res = await fetch(API + path, {
+      method: 'DELETE',
+      headers: headers || {},
+    });
+    var data = null;
+    try { data = await res.json(); } catch (e) { /* no body */ }
+    if (!res.ok) {
+      var msg = (data && (data.detail || data.message)) || ('Request failed (' + res.status + ')');
+      throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+    return data;
+  }
+
   /* Anti-bot fields for public forms: a hidden "website" honeypot (real
      visitors never see or fill it; many spam bots auto-fill every input)
      plus how many milliseconds have passed since the page loaded (a
@@ -103,6 +117,6 @@ window.ETL_API = (function () {
 
   return {
     post: post, get: get, getAuth: getAuth, postAuth: postAuth, getBlobAuth: getBlobAuth,
-    antiBotFields: antiBotFields, base: API,
+    deleteAuth: deleteAuth, antiBotFields: antiBotFields, base: API,
   };
 })();

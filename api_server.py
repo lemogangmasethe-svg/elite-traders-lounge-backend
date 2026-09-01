@@ -214,8 +214,14 @@ MIGRATION_COLUMNS = [
     ("bookings", "smile_id_submitted_at", "TEXT NOT NULL DEFAULT ''"),
     ("bookings", "registration_fee_paid", "INTEGER NOT NULL DEFAULT 0"),
     # Public babysitter profile (browsable by families once verified) and
-    # admin-settable star rating. Profile photo reuses selfie_data —
-    # no separate upload column needed, per product decision.
+    # admin-settable star rating. Profile photo used to reuse selfie_data;
+    # a dedicated profile_photo_* set of columns now lets a sitter (or
+    # admin, from the dashboard) upload/change a separate profile picture
+    # without touching the KYC verification selfie. Falls back to
+    # selfie_data wherever a sitter hasn't set one yet.
+    ("babysitters", "profile_photo_data", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "profile_photo_filename", "TEXT NOT NULL DEFAULT ''"),
+    ("babysitters", "profile_photo_mimetype", "TEXT NOT NULL DEFAULT ''"),
     ("babysitters", "profile_gender", "TEXT NOT NULL DEFAULT ''"),
     ("babysitters", "profile_race", "TEXT NOT NULL DEFAULT ''"),
     ("babysitters", "profile_age", "TEXT NOT NULL DEFAULT ''"),
@@ -551,6 +557,20 @@ def authenticate_sitter(email: str, access_code: str) -> dict:
     return dict(row)
 
 
+def profile_photo_data_url(row: dict) -> str:
+    """Build a data: URI for a sitter's own dashboard to render their
+    current profile picture inline, without a separate authenticated blob
+    endpoint (the sitter dashboard authenticates via email + access code in
+    a POST body, not a header, so a plain <img src> can't carry auth).
+    Prefers the dedicated profile photo; falls back to the KYC selfie so
+    sitters who registered before this feature still see a photo."""
+    data = row.get("profile_photo_data") or row.get("selfie_data") or ""
+    if not data:
+        return ""
+    mimetype = (row.get("profile_photo_mimetype") if row.get("profile_photo_data") else row.get("selfie_mimetype")) or "image/jpeg"
+    return f"data:{mimetype};base64,{data}"
+
+
 def sitter_public(row: dict) -> dict:
     result = {
         "id": row["id"],
@@ -565,6 +585,8 @@ def sitter_public(row: dict) -> dict:
         "id_type": row.get("id_type") or "sa_id",
         "registration_fee_paid": bool(row.get("registration_fee_paid")),
         "fee_paid_at": row.get("fee_paid_at") or "",
+        "has_profile_photo": bool(row.get("profile_photo_data") or row.get("selfie_data")),
+        "profile_photo_data_url": profile_photo_data_url(row),
     }
     result.update(compute_verification_status(row.get("verification_issued_date", ""), row.get("created_at", "")))
     return result
@@ -597,8 +619,8 @@ def sitter_public_profile(row: dict, available: Optional[bool] = None, distance_
         "profile_race": RACE_LABELS.get(row.get("profile_race") or "", row.get("profile_race") or ""),
         "profile_age": row.get("profile_age") or "",
         "rating": round(row["rating"], 1) if row.get("rating") else None,
-        "has_photo": bool(row.get("selfie_data")),
-        "photo_url": f"/api/babysitters/{row['id']}/photo" if row.get("selfie_data") else None,
+        "has_photo": bool(row.get("profile_photo_data") or row.get("selfie_data")),
+        "photo_url": f"/api/babysitters/{row['id']}/photo" if (row.get("profile_photo_data") or row.get("selfie_data")) else None,
         "available": available,
         "distance_km": distance_km,
         "is_local": (distance_km is not None and distance_km <= LOCAL_RADIUS_KM) if distance_km is not None else None,
@@ -1639,13 +1661,13 @@ def admin_list_sitters(admin_ok: bool = Depends(require_admin)):
     rows = [dict(r) for r in db.execute("SELECT * FROM babysitters ORDER BY created_at DESC").fetchall()]
     for r in rows:
         r.update(compute_verification_status(r.get("verification_issued_date", ""), r.get("created_at", "")))
-    rows = [strip_document_blobs(r, extra_kinds=SITTER_ONLY_DOCUMENT_KINDS) for r in rows]
+    rows = [strip_document_blobs(r, extra_kinds=(*SITTER_ONLY_DOCUMENT_KINDS, "profile_photo")) for r in rows]
     return {"sitters": rows}
 
 
 @app.get("/api/admin/sitters/{sitter_id}/document/{document_type}")
 def admin_get_sitter_document(sitter_id: int, document_type: str, admin_ok: bool = Depends(require_admin)):
-    if document_type not in (*DOCUMENT_KINDS, *SITTER_ONLY_DOCUMENT_KINDS):
+    if document_type not in (*DOCUMENT_KINDS, *SITTER_ONLY_DOCUMENT_KINDS, "profile_photo"):
         raise HTTPException(400, "Unknown document type.")
     row = db.execute(
         f"SELECT {document_type}_data AS data, {document_type}_filename AS filename, "
@@ -1759,6 +1781,75 @@ def admin_verify_sitter(sitter_id: int, payload: AdminSitterVerifyRequest, admin
     )
     db.commit()
     return {"id": sitter_id, "verified": verified, "status": status, "rating": rating}
+
+
+class AdminSitterPhotoRequest(BaseModel):
+    """Empty photo_data clears the current profile photo (falls back to the
+    KYC selfie for the public listing, or to the placeholder if there's no
+    selfie either)."""
+    photo_data: str = Field(default="")
+    photo_filename: str = Field(default="")
+    photo_mimetype: str = Field(default="")
+
+
+@app.post("/api/admin/sitters/{sitter_id}/photo")
+def admin_upload_sitter_photo(sitter_id: int, payload: AdminSitterPhotoRequest, admin_ok: bool = Depends(require_admin)):
+    row = db.execute("SELECT id FROM babysitters WHERE id = ?", (sitter_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Babysitter not found.")
+    if payload.photo_data.strip():
+        try:
+            validate_document_fields(
+                payload.photo_data, payload.photo_mimetype, payload.photo_filename,
+                "profile photo", ALLOWED_SELFIE_MIMETYPES,
+            )
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
+        db.execute(
+            "UPDATE babysitters SET profile_photo_data = ?, profile_photo_filename = ?, profile_photo_mimetype = ? WHERE id = ?",
+            (payload.photo_data, payload.photo_filename, payload.photo_mimetype, sitter_id),
+        )
+    else:
+        db.execute(
+            "UPDATE babysitters SET profile_photo_data = '', profile_photo_filename = '', profile_photo_mimetype = '' WHERE id = ?",
+            (sitter_id,),
+        )
+    db.commit()
+    updated = dict(db.execute("SELECT * FROM babysitters WHERE id = ?", (sitter_id,)).fetchone())
+    return {"id": sitter_id, "has_profile_photo": bool(updated.get("profile_photo_data") or updated.get("selfie_data"))}
+
+
+@app.delete("/api/admin/sitters/{sitter_id}")
+def admin_delete_sitter(sitter_id: int, admin_ok: bool = Depends(require_admin)):
+    """Permanently removes a babysitter's record. Blocked while they have an
+    active or upcoming assigned/confirmed booking so a family isn't left
+    without a sitter — admin must reassign or the booking must pass before
+    deleting. Past bookings and any other historical records referencing
+    this sitter are kept for the family's records; only the sitter-side
+    link is cleared (no foreign key constraints exist on these columns)."""
+    row = db.execute("SELECT id, full_name FROM babysitters WHERE id = ?", (sitter_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Babysitter not found.")
+    today = now_iso()[:10]
+    active = db.execute(
+        "SELECT COUNT(*) AS n FROM bookings WHERE assigned_sitter_id = ? AND status IN ('assigned','confirmed') "
+        "AND booking_date >= ? AND sitter_response != 'declined'",
+        (sitter_id, today),
+    ).fetchone()
+    if active and active["n"]:
+        raise HTTPException(
+            409,
+            "This babysitter has an active or upcoming booking assigned to them. "
+            "Please reassign or wait until that booking has passed before deleting their profile.",
+        )
+    db.execute(
+        "UPDATE bookings SET assigned_sitter_id = NULL, sitter_response = 'unassigned' WHERE assigned_sitter_id = ?",
+        (sitter_id,),
+    )
+    db.execute("UPDATE bookings SET preferred_sitter_id = NULL WHERE preferred_sitter_id = ?", (sitter_id,))
+    db.execute("DELETE FROM babysitters WHERE id = ?", (sitter_id,))
+    db.commit()
+    return {"id": sitter_id, "deleted": True}
 
 
 @app.get("/api/babysitters/public")
@@ -1882,12 +1973,18 @@ def service_areas():
 @app.get("/api/babysitters/{sitter_id}/photo")
 def babysitter_public_photo(sitter_id: int):
     row = db.execute(
-        "SELECT selfie_data, selfie_mimetype, verified FROM babysitters WHERE id = ?", (sitter_id,)
+        "SELECT selfie_data, selfie_mimetype, profile_photo_data, profile_photo_mimetype, verified "
+        "FROM babysitters WHERE id = ?", (sitter_id,)
     ).fetchone()
-    if not row or not row["verified"] or not row["selfie_data"]:
+    if not row or not row["verified"]:
         raise HTTPException(404, "No profile photo available.")
-    raw = base64.b64decode(row["selfie_data"])
-    return Response(content=raw, media_type=row["selfie_mimetype"] or "image/jpeg")
+    if row.get("profile_photo_data"):
+        raw = base64.b64decode(row["profile_photo_data"])
+        return Response(content=raw, media_type=row["profile_photo_mimetype"] or "image/jpeg")
+    if row.get("selfie_data"):
+        raw = base64.b64decode(row["selfie_data"])
+        return Response(content=raw, media_type=row["selfie_mimetype"] or "image/jpeg")
+    raise HTTPException(404, "No profile photo available.")
 
 
 @app.get("/api/admin/bookings")
@@ -2277,6 +2374,43 @@ def sitter_renew_verification(payload: SitterRenewVerificationRequest):
             "verified status."
         ),
     }
+
+
+class SitterProfilePhotoRequest(BaseModel):
+    """Empty photo_data removes the current profile picture (falls back to
+    the KYC selfie for the public listing, or the placeholder if there's no
+    selfie either). This is separate from selfie_data, which stays exactly
+    as captured for identity verification and is never overwritten here."""
+    email: str
+    access_code: str
+    photo_data: str = Field(default="")
+    photo_filename: str = Field(default="")
+    photo_mimetype: str = Field(default="")
+
+
+@app.post("/api/sitter/profile-photo")
+def sitter_upload_profile_photo(payload: SitterProfilePhotoRequest):
+    sitter = authenticate_sitter(payload.email, payload.access_code)
+    if payload.photo_data.strip():
+        try:
+            validate_document_fields(
+                payload.photo_data, payload.photo_mimetype, payload.photo_filename,
+                "profile photo", ALLOWED_SELFIE_MIMETYPES,
+            )
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
+        db.execute(
+            "UPDATE babysitters SET profile_photo_data = ?, profile_photo_filename = ?, profile_photo_mimetype = ? WHERE id = ?",
+            (payload.photo_data, payload.photo_filename, payload.photo_mimetype, sitter["id"]),
+        )
+    else:
+        db.execute(
+            "UPDATE babysitters SET profile_photo_data = '', profile_photo_filename = '', profile_photo_mimetype = '' WHERE id = ?",
+            (sitter["id"],),
+        )
+    db.commit()
+    updated = db.execute("SELECT * FROM babysitters WHERE id = ?", (sitter["id"],)).fetchone()
+    return {"sitter": sitter_public(dict(updated))}
 
 
 if __name__ == "__main__":

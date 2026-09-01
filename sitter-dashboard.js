@@ -27,8 +27,17 @@
   var renewalErrorText = document.getElementById('sitter-renewal-error-text');
   var renewalSuccess = document.getElementById('sitter-renewal-success');
   var renewalPayLink = document.getElementById('sitter-renewal-pay-link');
+  var photoPreview = document.getElementById('sitter-photo-preview');
+  var photoPlaceholder = document.getElementById('sitter-photo-placeholder');
+  var photoInput = document.getElementById('sitter-photo-input');
+  var photoFilenameEl = document.getElementById('sitter-photo-filename');
+  var photoSaveBtn = document.getElementById('sitter-photo-save');
+  var photoRemoveBtn = document.getElementById('sitter-photo-remove');
+  var photoError = document.getElementById('sitter-photo-error');
+  var photoErrorText = document.getElementById('sitter-photo-error-text');
   var MAX_DOCUMENT_BYTES = 6 * 1024 * 1024;
   var ALLOWED_DOCUMENT_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+  var ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
   var creds = null; // { email, access_code }
   var lastSitter = null;
@@ -96,9 +105,99 @@
       renderBookings(lastBookings);
       renderCalendar();
       renderVerificationStatus(lastSitter);
+      renderProfilePhoto(lastSitter);
     } catch (err) {
       bookingsList.innerHTML = '<div class="dash-empty">Could not load bookings: ' + escapeHtml(err.message) + '</div>';
     }
+  }
+
+  // --- Profile photo (separate from the verification selfie) ---
+  function renderProfilePhoto(sitter) {
+    if (!photoPreview || !photoPlaceholder || !sitter) return;
+    if (sitter.profile_photo_data_url) {
+      photoPreview.src = sitter.profile_photo_data_url;
+      photoPreview.style.display = '';
+      photoPlaceholder.style.display = 'none';
+    } else {
+      photoPreview.style.display = 'none';
+      photoPlaceholder.style.display = '';
+    }
+    if (photoRemoveBtn) photoRemoveBtn.hidden = !sitter.has_profile_photo;
+  }
+
+  if (photoInput) {
+    photoInput.addEventListener('change', function () {
+      var file = photoInput.files && photoInput.files[0];
+      if (photoError) photoError.hidden = true;
+      if (!file) {
+        if (photoFilenameEl) photoFilenameEl.textContent = '';
+        if (photoSaveBtn) photoSaveBtn.disabled = true;
+        return;
+      }
+      if (ALLOWED_PHOTO_TYPES.indexOf(file.type) === -1) {
+        if (photoErrorText) photoErrorText.textContent = 'Please choose a JPG, PNG, or WEBP image.';
+        if (photoError) photoError.hidden = false;
+        photoInput.value = '';
+        if (photoSaveBtn) photoSaveBtn.disabled = true;
+        return;
+      }
+      if (file.size > MAX_DOCUMENT_BYTES) {
+        if (photoErrorText) photoErrorText.textContent = 'That photo is too large. Please choose one under 6MB.';
+        if (photoError) photoError.hidden = false;
+        photoInput.value = '';
+        if (photoSaveBtn) photoSaveBtn.disabled = true;
+        return;
+      }
+      if (photoFilenameEl) photoFilenameEl.textContent = file.name;
+      if (photoSaveBtn) photoSaveBtn.disabled = false;
+    });
+  }
+
+  if (photoSaveBtn) {
+    photoSaveBtn.addEventListener('click', async function () {
+      var file = photoInput && photoInput.files && photoInput.files[0];
+      if (!file || !creds) return;
+      if (photoError) photoError.hidden = true;
+      photoSaveBtn.disabled = true;
+      photoSaveBtn.textContent = 'Saving\u2026';
+      try {
+        var data = await readFileAsBase64(file);
+        var result = await api.post('/api/sitter/profile-photo', Object.assign({}, creds, {
+          photo_data: data, photo_filename: file.name, photo_mimetype: file.type,
+        }));
+        lastSitter = result.sitter || lastSitter;
+        renderProfilePhoto(lastSitter);
+        if (photoInput) photoInput.value = '';
+        if (photoFilenameEl) photoFilenameEl.textContent = '';
+      } catch (err) {
+        if (photoErrorText) photoErrorText.textContent = err.message || 'Could not save your photo. Please try again.';
+        if (photoError) photoError.hidden = false;
+      } finally {
+        photoSaveBtn.disabled = true;
+        photoSaveBtn.textContent = 'Save photo';
+      }
+    });
+  }
+
+  if (photoRemoveBtn) {
+    photoRemoveBtn.addEventListener('click', async function () {
+      if (!creds) return;
+      if (!window.confirm('Remove your current profile picture?')) return;
+      if (photoError) photoError.hidden = true;
+      photoRemoveBtn.disabled = true;
+      try {
+        var result = await api.post('/api/sitter/profile-photo', Object.assign({}, creds, {
+          photo_data: '', photo_filename: '', photo_mimetype: '',
+        }));
+        lastSitter = result.sitter || lastSitter;
+        renderProfilePhoto(lastSitter);
+      } catch (err) {
+        if (photoErrorText) photoErrorText.textContent = err.message || 'Could not remove your photo. Please try again.';
+        if (photoError) photoError.hidden = false;
+      } finally {
+        photoRemoveBtn.disabled = false;
+      }
+    });
   }
 
   var VERIFICATION_STATUS_LABELS = {

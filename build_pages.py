@@ -1810,6 +1810,29 @@ SITTER_BODY = '''
           <button type="button" class="btn btn--ghost btn--sm" id="sitter-logout-btn">Sign out</button>
         </div>
 
+        <div class="dash-card" id="sitter-photo-panel" style="margin-bottom: var(--space-6);">
+          <h2 style="font-size: var(--text-lg); margin-bottom: var(--space-3);">Your profile picture</h2>
+          <p class="dash-card__meta" style="margin-bottom: var(--space-4);">This is separate from your verification selfie &mdash; it's just what families see on your public profile once you're verified.</p>
+          <div style="display:flex; gap: var(--space-5); align-items:center; flex-wrap:wrap;">
+            <img class="dash-card__photo" id="sitter-photo-preview" alt="Your profile photo" style="display:none;" />
+            <div class="dash-card__photo dash-card__photo--placeholder" id="sitter-photo-placeholder">No photo yet</div>
+            <div style="display:flex; flex-direction:column; gap: var(--space-2); min-width: 220px;">
+              <label class="btn btn--secondary btn--sm" style="cursor:pointer; width:fit-content;">
+                Choose photo
+                <input type="file" id="sitter-photo-input" accept="image/jpeg,image/png,image/webp" hidden />
+              </label>
+              <span class="file-status" id="sitter-photo-filename"></span>
+              <div style="display:flex; gap: var(--space-2); flex-wrap:wrap;">
+                <button type="button" class="btn btn--primary btn--sm" id="sitter-photo-save" disabled>Save photo</button>
+                <button type="button" class="btn btn--ghost btn--sm" id="sitter-photo-remove" hidden>Remove photo</button>
+              </div>
+              <div class="alert alert--error" id="sitter-photo-error" hidden style="margin-top: var(--space-2);">
+                <span id="sitter-photo-error-text"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="dash-card" id="sitter-verification-panel" style="margin-bottom: var(--space-6);">
           <h2 style="font-size: var(--text-lg); margin-bottom: var(--space-3);">Verification &amp; annual fee</h2>
           <div id="sitter-verification-status">

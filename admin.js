@@ -193,9 +193,15 @@
         var checked = s[f[0]] ? ' checked' : '';
         return '<label><input type="checkbox" data-doc="' + f[0] + '" data-sitter="' + s.id + '"' + checked + ' />' + f[1] + '</label>';
       }).join('');
-      var photoHtml = s.has_selfie
+      var photoHtml = (s.has_profile_photo || s.has_selfie)
         ? '<img class="dash-card__photo" data-sitter-photo="' + s.id + '" alt="' + escapeHtml(s.full_name) + ' profile photo" />'
         : '<div class="dash-card__photo dash-card__photo--placeholder">No photo</div>';
+      var photoControlsHtml =
+        '<div class="dash-card__photo-actions">' +
+        '<label class="btn btn--ghost btn--sm" style="cursor:pointer;">Change photo' +
+        '<input type="file" accept="image/jpeg,image/png,image/webp" data-photo-upload="' + s.id + '" hidden /></label>' +
+        (s.has_profile_photo ? '<button type="button" class="btn btn--ghost btn--sm" data-remove-photo="' + s.id + '">Remove photo</button>' : '') +
+        '</div>';
       var profileBits = [];
       if (s.profile_gender) profileBits.push(GENDER_LABELS[s.profile_gender] || s.profile_gender);
       if (s.profile_race) profileBits.push(RACE_LABELS[s.profile_race] || s.profile_race);
@@ -205,7 +211,7 @@
       return (
         '<div class="dash-card" data-sitter-card="' + s.id + '">' +
         '<div class="dash-card__head">' + photoHtml + '<div><div class="dash-card__title">' + escapeHtml(s.full_name) + '</div>' +
-        '<div class="dash-card__meta">Applied ' + fmtDate(s.created_at) + ' &middot; ' + profileLine + '</div></div>' +
+        '<div class="dash-card__meta">Applied ' + fmtDate(s.created_at) + ' &middot; ' + profileLine + '</div>' + photoControlsHtml + '</div>' +
         '<div style="display:flex;flex-direction:column;gap:var(--space-2);align-items:flex-end;">' + verifiedBadge + verificationBadge(s) + '</div></div>' +
         '<dl class="dash-kv">' +
         '<div><dt>Email</dt><dd>' + escapeHtml(s.email) + '</dd></div>' +
@@ -237,6 +243,7 @@
         '<div class="dash-notes"><textarea data-notes="' + s.id + '" placeholder="Admin notes (e.g. how documents were checked)">' + escapeHtml(s.admin_notes || '') + '</textarea></div>' +
         '<div class="dash-card__actions">' +
         '<button type="button" class="btn btn--primary btn--sm" data-save-sitter="' + s.id + '">Save verification</button>' +
+        '<button type="button" class="btn btn--danger btn--sm" data-delete-sitter="' + s.id + '" data-sitter-name="' + escapeHtml(s.full_name) + '" style="margin-left:auto;">Delete babysitter</button>' +
         '</div>' +
         '</div>'
       );
@@ -246,16 +253,102 @@
 
   function loadSitterPhotos(sitters) {
     sitters.forEach(function (s) {
-      if (!s.has_selfie) return;
+      var docType = s.has_profile_photo ? 'profile_photo' : (s.has_selfie ? 'selfie' : null);
+      if (!docType) return;
       var img = sittersList.querySelector('[data-sitter-photo="' + s.id + '"]');
       if (!img) return;
-      api.getBlobAuth('/api/admin/sitters/' + s.id + '/document/selfie', headers()).then(function (blob) {
+      api.getBlobAuth('/api/admin/sitters/' + s.id + '/document/' + docType, headers()).then(function (blob) {
         img.src = URL.createObjectURL(blob);
       }).catch(function () {
         img.replaceWith(Object.assign(document.createElement('div'), { className: 'dash-card__photo dash-card__photo--placeholder', textContent: 'No photo' }));
       });
     });
   }
+
+  function readFileAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var result = reader.result || '';
+        var commaIndex = result.indexOf(',');
+        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+      };
+      reader.onerror = function () { reject(new Error('Could not read the file. Please try again.')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  var ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  var MAX_PHOTO_BYTES = 6 * 1024 * 1024;
+
+  sittersList.addEventListener('change', async function (e) {
+    var input = e.target.closest('[data-photo-upload]');
+    if (!input) return;
+    var id = input.getAttribute('data-photo-upload');
+    var file = input.files && input.files[0];
+    if (!file) return;
+    if (ALLOWED_PHOTO_TYPES.indexOf(file.type) === -1) {
+      alert('Please choose a JPG, PNG, or WEBP image.');
+      input.value = '';
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      alert('That photo is too large. Please choose one under 6MB.');
+      input.value = '';
+      return;
+    }
+    try {
+      var data = await readFileAsBase64(file);
+      await api.postAuth('/api/admin/sitters/' + id + '/photo', {
+        photo_data: data, photo_filename: file.name, photo_mimetype: file.type,
+      }, headers());
+      await loadSitters();
+    } catch (err) {
+      alert('Could not upload photo: ' + err.message);
+    }
+  });
+
+  sittersList.addEventListener('click', async function (e) {
+    var removeBtn = e.target.closest('[data-remove-photo]');
+    if (removeBtn) {
+      if (!window.confirm('Remove this babysitter\u2019s profile photo?')) return;
+      var id = removeBtn.getAttribute('data-remove-photo');
+      removeBtn.disabled = true;
+      try {
+        await api.postAuth('/api/admin/sitters/' + id + '/photo', { photo_data: '' }, headers());
+        await loadSitters();
+      } catch (err) {
+        alert('Could not remove photo: ' + err.message);
+        removeBtn.disabled = false;
+      }
+      return;
+    }
+    var deleteBtn = e.target.closest('[data-delete-sitter]');
+    if (deleteBtn) {
+      var sId = deleteBtn.getAttribute('data-delete-sitter');
+      var sName = deleteBtn.getAttribute('data-sitter-name') || 'this babysitter';
+      var typed = window.prompt(
+        'This will permanently delete ' + sName + '\u2019s babysitter profile, including their documents and history. ' +
+        'This cannot be undone.\n\nTo confirm, type their full name exactly as shown (' + sName + ') below:'
+      );
+      if (typed === null) return;
+      if (typed.trim().toLowerCase() !== sName.trim().toLowerCase()) {
+        alert('That did not match \u201c' + sName + '\u201d exactly, so nothing was deleted.');
+        return;
+      }
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting\u2026';
+      try {
+        await api.deleteAuth('/api/admin/sitters/' + sId, headers());
+        await loadSitters();
+        await loadBookings();
+      } catch (err) {
+        alert('Could not delete: ' + err.message);
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = 'Delete babysitter';
+      }
+    }
+  });
 
   sittersList.addEventListener('click', async function (e) {
     var btn = e.target.closest('[data-save-sitter]');

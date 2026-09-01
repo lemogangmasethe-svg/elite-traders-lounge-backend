@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Become a Babysitter — Elite Traders Lounge</title>
+<meta name="description" content="Register as a verified babysitter with Elite Traders Lounge. No experience required — students earning extra money and experienced caregivers both welcome. Get verified, get paid fairly, get booked." />
+<meta name="robots" content="noindex, nofollow" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="./base.css" />
+<link rel="stylesheet" href="./style.css" />
+<style>
+  /* Recruitment-page-only overrides — keep this page self-contained, no site nav */
+  .recruit-header {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .recruit-header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-5);
+  }
+  .recruit-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--text);
+  }
+  .recruit-brand svg { width: 32px; height: 32px; color: var(--primary); flex-shrink: 0; }
+  .recruit-brand span { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; line-height: 1.2; }
+  .recruit-audience {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+    margin: var(--space-6) 0;
+  }
+  .recruit-audience__card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+  }
+  .recruit-audience__card h3 { margin: 0 0 var(--space-2); font-size: 1.05rem; }
+  .recruit-audience__card p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+  .recruit-footer {
+    border-top: 1px solid var(--border);
+    padding: var(--space-6) var(--space-5);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .recruit-footer a { color: var(--text-muted); }
+  .recruit-footer p { margin: 0 0 var(--space-2); }
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<header class="recruit-header">
+  <div class="container">
+    <div class="recruit-brand" aria-label="Elite Traders Lounge">
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <path d="M24 4 8 11v10c0 12 7 19 16 23 9-4 16-11 16-23V11L24 4Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <path d="M24 15c-4.5 0-7 3-7 6.4 0 4.2 4.3 6.7 7 9.6 2.7-2.9 7-5.4 7-9.6 0-3.4-2.5-6.4-7-6.4Z" fill="currentColor"/>
+      </svg>
+      <span>Elite Traders Lounge<br />Babysitter Registration</span>
+    </div>
+    <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-hero">
+    <div class="container container--narrow">
+      <span class="eyebrow">Babysitters wanted</span>
+      <h1>Earn money caring for children — no experience required to start.</h1>
+      <p>Whether you're a student looking to earn extra money in your spare time, or you've spent years caring for children and have the patience and love to prove it — Elite Traders Lounge has a place for you. Register below, get verified, and start receiving paid bookings from families near you.</p>
+      <div class="recruit-audience">
+        <div class="recruit-audience__card">
+          <h3>Students &amp; anyone new to babysitting</h3>
+          <p>No formal experience yet? Register as Level 1 (Entry). You'll still be fairly paid — R45/hour minimum — while you build your track record and references.</p>
+        </div>
+        <div class="recruit-audience__card">
+          <h3>Experienced caregivers</h3>
+          <p>Years of childcare experience, First Aid/CPR training, or overnight/special-needs experience earns you a higher rate band — up to R85/hour.</p>
+        </div>
+        <div class="recruit-audience__card">
+          <h3>Anyone with patience &amp; love for children</h3>
+          <p>What matters most is that you're reliable, trustworthy, and genuinely good with kids. We verify your identity and background so families can trust you from day one.</p>
+        </div>
+      </div>
+      <div class="alert alert--info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>Every applicant completes identity verification (Smile ID) before receiving bookings, and every booking pays at or above the National Minimum Wage (R30.23/hour, effective 1 March 2026) &mdash; never negotiated down. New to this? Read our <a href="./recruit-guide.html">simple, step-by-step getting started guide</a> first &mdash; it walks you through everything, including creating your Paystack account.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-pad section-pad--tight">
+    <div class="container container--narrow">
+      <div class="form-shell">
+        <form id="sitter-form" novalidate>
+
+          <div class="form-section">
+            <div class="form-section__title">Your details</div>
+            <div class="form-section__hint">This information is used for identity verification and to contact you about bookings.</div>
+            <div class="field">
+              <label for="full_name">Full name</label>
+              <input type="text" id="full_name" name="full_name" autocomplete="name" required minlength="2" maxlength="120" />
+            </div>
+
+            <div class="field">
+              <label>Identity document</label>
+              <div class="radio-cards" data-id-type-group>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="sa_id" checked data-id-type-toggle />
+                  <strong>South African ID</strong>
+                  <span>SA citizens &amp; permanent residents</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="id_type" value="passport" data-id-type-toggle />
+                  <strong>Passport + work permit</strong>
+                  <span>Foreign nationals registering as freelancers</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="sa_id">
+              <div class="field">
+                <label for="id_number">South African ID number</label>
+                <input type="text" id="id_number" name="id_number" inputmode="numeric" minlength="5" maxlength="20" />
+              </div>
+            </div>
+
+            <div class="field-grid" data-id-fields="passport" hidden>
+              <div class="field">
+                <label for="passport_number">Passport number</label>
+                <input type="text" id="passport_number" name="passport_number" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="work_permit_number">Work permit number</label>
+                <input type="text" id="work_permit_number" name="work_permit_number" maxlength="40" />
+                <span class="field__hint">Required by South African immigration law &mdash; freelance babysitters who are not SA citizens or permanent residents must hold a valid work permit.</span>
+              </div>
+              <div class="field">
+                <label for="work_permit_expiry">Work permit expiry date</label>
+                <input type="date" id="work_permit_expiry" name="work_permit_expiry" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="nationality">Nationality</label>
+              <input type="text" id="nationality" name="nationality" required maxlength="60" placeholder="e.g. South African" />
+            </div>
+
+            <div class="field-grid">
+              <div class="field">
+                <label for="phone">Cellphone number</label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" required minlength="7" maxlength="20" placeholder="e.g. 081 234 5678" />
+              </div>
+              <div class="field">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" autocomplete="email" required />
+              </div>
+            </div>
+            <div class="field">
+              <label for="address">Home address</label>
+              <input type="text" id="address" name="address" autocomplete="street-address" required minlength="5" maxlength="300" />
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="town">Town / suburb</label>
+                <input type="text" id="town" name="town" autocomplete="address-level2" required minlength="2" maxlength="80" placeholder="e.g. Modelpark" />
+              </div>
+              <div class="field">
+                <label for="province">Province</label>
+                <select id="province" name="province" required>
+                  <option value="">Select province</option>
+                  <option>Gauteng</option>
+                  <option>Mpumalanga</option>
+                  <option>Western Cape</option>
+                  <option>Eastern Cape</option>
+                  <option>KwaZulu-Natal</option>
+                  <option>Free State</option>
+                  <option>Limpopo</option>
+                  <option>North West</option>
+                  <option>Northern Cape</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-section__hint">This tells families roughly where you're based so we can match you with bookings within a practical, local travel distance (our 40km service-area policy) &mdash; we never show your exact street address to families.</div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Public profile (shown to families)</div>
+            <div class="form-section__hint">Once you're verified, families browsing babysitters see this information alongside your photo, so they can choose who best fits their household. Your profile photo is simply the selfie you capture below for identity verification &mdash; no separate upload needed.</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="profile_gender">Gender</label>
+                <select id="profile_gender" name="profile_gender" required>
+                  <option value="" disabled selected>Select</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="profile_race">Race / ethnicity</label>
+                <select id="profile_race" name="profile_race" required>
+                  <option value="" disabled selected>Select</option>
+                  <option value="black_african">Black African</option>
+                  <option value="coloured">Coloured</option>
+                  <option value="indian_asian">Indian / Asian</option>
+                  <option value="white">White</option>
+                  <option value="other">Other</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="profile_age">Age</label>
+                <input type="number" id="profile_age" name="profile_age" min="18" max="80" required placeholder="e.g. 28" />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Upload your documents</div>
+            <div class="form-section__hint">Upload clear photos or scans (JPG, PNG, or PDF, max 6MB each) right here &mdash; our verification team reviews them directly with your application. No need to email or WhatsApp them separately.</div>
+            <div class="field">
+              <label for="id_document">Copy of your ID / passport</label>
+              <input type="file" id="id_document" name="id_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+              <span class="field__hint">JPG, PNG, or PDF &middot; max 6MB</span>
+              <span class="file-status" id="id_document-status"></span>
+            </div>
+            <div class="field">
+              <label for="proof_of_address_type">Proof of address document type</label>
+              <select id="proof_of_address_type" name="proof_of_address_type" required>
+                <option value="" disabled selected>Select a document type</option>
+                <option value="utility_bill">Utility bill (municipal / electricity / water)</option>
+                <option value="bank_statement">Bank statement</option>
+                <option value="lease_agreement">Lease agreement</option>
+                <option value="affidavit">Affidavit confirming residential address</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="proof_of_address_document">Upload proof of address</label>
+              <input type="file" id="proof_of_address_document" name="proof_of_address_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+              <span class="field__hint">A utility bill, bank statement, lease agreement, or affidavit dated within the last 3 months, matching the home address above &middot; JPG, PNG, or PDF, max 6MB</span>
+              <span class="file-status" id="proof_of_address_document-status"></span>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="proof_of_address_confirmed" name="proof_of_address_confirmed" required />
+              <label for="proof_of_address_confirmed">I confirm this document is dated within the last 3 months and matches the home address above.</label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Experience &amp; rate band</div>
+            <div class="form-section__hint">Choose the level that matches your experience &mdash; this determines your Appendix C rate band. New to babysitting? Start at Level 1 &mdash; you'll still be paid fairly from day one. Our team confirms your final level during verification.</div>
+            <div class="field">
+              <label>Experience level</label>
+              <div class="radio-cards">
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="1" required />
+                  <strong>Level 1 &mdash; Entry</strong>
+                  <span>0&ndash;1 year &middot; R45/hr day (5hr min) or R315/day flat</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="2" />
+                  <strong>Level 2 &mdash; Standard</strong>
+                  <span>1&ndash;3 years, references &middot; R55/hr day (5hr min) or R385/day flat</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="3" />
+                  <strong>Level 3 &mdash; Advanced</strong>
+                  <span>3+ yrs, First Aid/CPR &middot; R65/hr day (4hr min) or R450/day flat, R700/night overnight</span>
+                </label>
+                <label class="radio-card">
+                  <input type="radio" name="experience_level" value="4" />
+                  <strong>Level 4 &mdash; Specialist</strong>
+                  <span>Overnight / special needs &middot; R850/night (10hr)</span>
+                </label>
+              </div>
+            </div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="years_experience">Years of babysitting / childcare experience</label>
+                <input type="text" id="years_experience" name="years_experience" required placeholder="e.g. 2 years, or 'None yet — new to babysitting'" />
+              </div>
+              <div class="field">
+                <label for="certifications">Certifications <span class="field__hint">(optional)</span></label>
+                <input type="text" id="certifications" name="certifications" placeholder="e.g. First Aid, CPR, ECD qualification" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="availability">Availability</label>
+              <input type="text" id="availability" name="availability" required minlength="2" maxlength="300" placeholder="e.g. Weekday evenings, weekends, overnight from Fridays" />
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Reference &amp; affidavit</div>
+            <div class="form-section__hint">Provide one contactable reference. This person will be asked to complete and sign the standard Reference Affidavit (Appendix A of your contract) before a Commissioner of Oaths, confirming your character and childcare experience.</div>
+            <div class="field-grid">
+              <div class="field">
+                <label for="reference_name">Reference full name</label>
+                <input type="text" id="reference_name" name="reference_name" required minlength="2" maxlength="120" />
+              </div>
+              <div class="field">
+                <label for="reference_relationship">Relationship to you</label>
+                <input type="text" id="reference_relationship" name="reference_relationship" required minlength="2" maxlength="80" placeholder="e.g. Former employer, family friend, lecturer" />
+              </div>
+              <div class="field">
+                <label for="reference_phone">Reference cellphone number</label>
+                <input type="tel" id="reference_phone" name="reference_phone" required minlength="7" maxlength="20" />
+              </div>
+              <div class="field">
+                <label for="reference_email">Reference email address</label>
+                <input type="email" id="reference_email" name="reference_email" required />
+              </div>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="reference_affidavit_consent" name="reference_affidavit_consent" required />
+              <label for="reference_affidavit_consent">I confirm this reference has agreed to be contacted by Elite Traders Lounge and to complete the Reference Affidavit template in Appendix A of the Babysitter Contract.</label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section__title">Paystack payout account</div>
+            <div class="form-section__hint">Elite Traders Lounge uses Paystack Split Payment: every booking pays into Paystack once, and Paystack pays your net share directly to your own Paystack account &mdash; Elite Traders Lounge never holds or is responsible for your funds. Enter the email address linked to your Paystack account; if you don't have one yet, create a free account at <a href="https://paystack.com" target="_blank" rel="noopener">paystack.com</a> before submitting.</div>
+            <div class="field">
+              <label for="paystack_email">Paystack account email</label>
+              <input type="email" id="paystack_email" name="paystack_email" required />
+            </div>
+          </div>
+
+          <div class="form-section form-section--final">
+            <div class="form-section__title">Selfie &amp; liveness check &middot; Verify your identity</div>
+            <div class="form-section__hint">Elite Traders Lounge partners with Smile ID to confirm your identity against your ID/passport and run a facial-liveness check automatically when you submit this form. Once verified, your profile displays a &ldquo;Verified identity&rdquo; badge that families can see.</div>
+            <div class="selfie-capture" id="selfie-capture">
+              <div class="selfie-capture__frame">
+                <div class="selfie-capture__placeholder" id="selfie-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5c1.2-2.3 3.2-3.5 5.5-3.5s4.3 1.2 5.5 3.5"/></svg>
+                </div>
+                <video id="selfie-video" autoplay playsinline muted hidden></video>
+                <img id="selfie-preview" hidden alt="Captured selfie preview" />
+                <canvas id="selfie-canvas" hidden></canvas>
+              </div>
+              <div class="selfie-capture__actions">
+                <button type="button" class="btn btn--secondary" id="selfie-start-btn">Turn on camera</button>
+                <button type="button" class="btn btn--primary" id="selfie-capture-btn" hidden>Capture selfie</button>
+                <button type="button" class="btn btn--ghost" id="selfie-retake-btn" hidden>Retake</button>
+              </div>
+              <span class="field__hint">We take one clear photo of your face, then a quick photo burst while you slowly turn your head &mdash; this proves a real person is registering, not a photo of a photo. Your camera feed is never recorded, only these still frames are sent to Smile ID.</span>
+              <span class="file-status" id="selfie-status"></span>
+            </div>
+            <div class="field">
+              <label for="police_clearance_document">AFIS check or police clearance certificate <span class="field__hint">(required)</span></label>
+              <input type="file" id="police_clearance_document" name="police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+              <span class="field__hint">A valid SAPS Police Clearance Certificate &middot; JPG, PNG, or PDF, max 6MB. Don't have one yet? You can apply at any police station for a once-off fee of R190 &mdash; take your ID/passport, get SAPS 91(a) fingerprints taken, and pay at the station or by EFT; see the <a href="https://www.saps.gov.za/services/applying_clearence_certificate.php" target="_blank" rel="noopener">official SAPS guidance</a>. It typically takes a few weeks to be issued, so we recommend applying early. This is not a once-off check &mdash; to remain verified, you'll need to submit a fresh clearance certificate every 12 months.</span>
+              <span class="file-status" id="police_clearance_document-status"></span>
+            </div>
+            <div class="field">
+              <label for="child_protection_clearance_document">Child Protection Register (Part B) clearance letter <span class="field__hint">(required)</span></label>
+              <input type="file" id="child_protection_clearance_document" name="child_protection_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required />
+              <span class="field__hint">Proof you are not listed on Part B of South Africa's National Child Protection Register, which bars unsuitable people from working with children &middot; JPG, PNG, or PDF, max 6MB. Apply for a free Form 30 individual enquiry by emailing your ID copy to <a href="mailto:CPRenquiries@dsd.gov.za">CPRenquiries@dsd.gov.za</a> (Department of Social Development) &mdash; it typically takes a few weeks, so apply early. Like the police clearance above, this must be renewed every 12 months to keep your verified status.</span>
+              <span class="file-status" id="child_protection_clearance_document-status"></span>
+            </div>
+            <div class="field-grid" data-id-fields="passport" hidden>
+              <div class="field">
+                <label for="foreign_police_clearance_document">Foreign police clearance certificate <span class="field__hint">(required for non-SA sitters)</span></label>
+                <input type="file" id="foreign_police_clearance_document" name="foreign_police_clearance_document" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" />
+                <span class="field__hint">South African immigration law requires foreign nationals to also provide a police clearance certificate from any country they lived in for 12+ months as an adult during the last 5 years, issued within the last 6 months &middot; JPG, PNG, or PDF, max 6MB. Contact that country's police or diplomatic mission for the correct process. This also needs renewing every 12 months.</span>
+                <span class="file-status" id="foreign_police_clearance_document-status"></span>
+              </div>
+            </div>
+            <div class="checkbox-field">
+              <input type="checkbox" id="smile_id_consent" name="smile_id_consent" required />
+              <label for="smile_id_consent">I consent to Smile ID verifying my identity (document check + facial liveness) and to Elite Traders Lounge reviewing my police clearance certificate, Child Protection Register clearance, and (if applicable) foreign police clearance as part of registration and each annual renewal.</label>
+            </div>
+          </div>
+
+          <div class="form-section form-section--final">
+            <div class="form-section__title">Annual registration &amp; verification fee &middot; R99</div>
+            <div class="form-section__hint">An R99 fee covers your identity and document verification. It is completely separate from booking commission, and is the same R99 fee families pay. Because your police clearance and Child Protection Register checks must be renewed every 12 months to keep your safety verification current, this fee is charged annually rather than once &mdash; you'll pay it again each year alongside your renewal documents, from your sitter dashboard.</div>
+            <a href="https://paystack.shop/pay/-c63v2905q" target="_blank" rel="noopener" class="btn btn--primary">Pay R99 registration fee via Paystack</a>
+            <span class="field__hint" style="display:block;margin-top:var(--space-3);">Use the same email address you entered above as your payment reference so our team can match your payment. Our team confirms receipt on the Paystack account and marks your registration fee as paid &mdash; you don't need to upload proof.</span>
+          </div>
+
+          <div class="form-section">
+            <div class="checkbox-field">
+              <input type="checkbox" id="agreed_terms" name="agreed_terms" required />
+              <label for="agreed_terms">I confirm the details above are accurate and I agree to the Elite Traders Lounge Babysitter Contract (emailed to me on submission), the <a href="./terms.html">Terms &amp; Conditions</a>, the <a href="./policies.html#refund-policy">Refund &amp; Cancellation Policy</a>, and the <a href="./policies.html#popia">POPIA data protection terms</a>. I understand Elite Traders Lounge reserves the right to refuse or cancel service to any user who provides false information or breaches its rules.</label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn--primary" id="sitter-submit">Submit application</button>
+              <span class="form-section__hint" style="margin:0;">Already applied? <a href="mailto:lemo.masethe@elitetraders.co.za">Email support</a> for a status update.</span>
+            </div>
+            <div class="alert alert--success" id="sitter-success" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4M12 3l7 3v6c0 5-3 8.5-7 9-4-.5-7-4-7-9V6l7-3Z"/></svg>
+              <span id="sitter-success-text">Application received. Our team will contact you to complete Smile ID verification before you can accept bookings.</span>
+              <span class="badge-verified badge-verified--pending" style="margin-left: var(--space-3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Verification pending</span>
+              <a href="#" id="sitter-contract-link" style="margin-left: var(--space-3); white-space: nowrap;" target="_blank" rel="noopener" hidden>Download contract</a>
+            </div>
+            <div class="booking-ref-box" id="sitter-access-box" hidden>
+              <div class="booking-ref-box__item"><span>Your dashboard access code</span><strong id="sitter-access-code">&ndash;</strong></div>
+            </div>
+            <p class="form-section__hint" id="sitter-access-hint" hidden style="margin-top: var(--space-3);">Save this code &mdash; with your email, it logs you into your babysitter dashboard to accept or decline bookings and set your availability. It's also included in your emailed contract.</p>
+            <div class="alert alert--error" id="sitter-error" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              <span id="sitter-error-text">Something went wrong.</span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="recruit-footer">
+  <div class="container">
+    <p>Elite Traders Lounge (Pty) Ltd &middot; Reg. K2017318876 &middot; Kwa-Guqa, Mpumalanga, South Africa</p>
+    <p><a href="mailto:lemo.masethe@elitetraders.co.za">Email support</a> &middot; <a href="tel:+27814270419">Call support</a> &middot; <a href="./terms.html">Terms &amp; Conditions</a> &middot; <a href="./policies.html">Policies</a></p>
+  </div>
+</footer>
+
+<script src="./app.js" defer></script>
+<script src="./api.js" defer></script>
+<script src="./selfie-capture.js" defer></script>
+<script src="./register.js" defer></script>
+</body>
+</html>
